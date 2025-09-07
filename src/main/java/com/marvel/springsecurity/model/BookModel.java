@@ -1,17 +1,20 @@
 package com.marvel.springsecurity.model;
 
+import jakarta.persistence.Entity;
+import jakarta.persistence.Id;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.springframework.stereotype.Component;
 
-@Component
+@Entity
 @Data
-@AllArgsConstructor
 @NoArgsConstructor
+@AllArgsConstructor
 public class BookModel {
 
-    private int bookId;
-    private String BookName;
+    @Id
+    private int id;
+    private String title;
+    private double price;
 
 }
