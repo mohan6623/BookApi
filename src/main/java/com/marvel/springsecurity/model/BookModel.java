@@ -15,6 +15,13 @@ public class BookModel {
     @Id
     private int id;
     private String title;
-    private double price;
+    private String description;
+    private String author;
+    private String category;
+    private String imageName;
+    private String imageType;
+    private byte[] image;
+
+
 
 }

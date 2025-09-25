@@ -14,6 +14,7 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 @Configuration
 @EnableWebSecurity
@@ -21,7 +22,8 @@ public class SecurityConfig {
 
     @Autowired
     UserDetailsService userDetailsService;
-
+    @Autowired
+    JwtFilter jwtFilter;
     @Bean
     public AuthenticationProvider authProvider(){
         DaoAuthenticationProvider provider = new DaoAuthenticationProvider();
@@ -37,11 +39,14 @@ public class SecurityConfig {
                 // Configure authorization for HTTP requests, setting all requests to be authenticated.
                 .authorizeHttpRequests(request -> request
                         .requestMatchers("register","login").permitAll() //to permit without any authentication process.
-                        .anyRequest().authenticated()) // will permit only after authenticate.
+                        .anyRequest().authenticated() // will permit only after authenticate.
+                )
                 // Use basic HTTP authentication (username and password in HTTP headers)
                 .httpBasic(Customizer.withDefaults())
+                .oauth2Login(Customizer.withDefaults())
                 // Configure session management to be stateless, meaning no session will be maintained
-                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
