@@ -1,13 +1,11 @@
 package com.marvel.springsecurity.controller;
 
 
-import com.marvel.springsecurity.model.User;
-import com.marvel.springsecurity.service.JwtService;
-import com.marvel.springsecurity.service.UserService;
+import com.marvel.springsecurity.dto.JwtResponse;
+import com.marvel.springsecurity.dto.User;
+import com.marvel.springsecurity.service.security.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
@@ -18,10 +16,8 @@ public class SecurityController {
     User user;
     @Autowired
     UserService service;
-    @Autowired
-    AuthenticationManager authenticationManager;
-    @Autowired
-    JwtService jwtService;
+
+
 
 //    @GetMapping("csrf-token")
 //    public CsrfToken getCsrf(HttpServletRequest request){
@@ -30,18 +26,16 @@ public class SecurityController {
 
 //JWT
     @PostMapping("register")
-    public void register(@RequestBody User user){
-        service.saveUser(user);
+    public ResponseEntity<Void> register(@RequestBody User user){
+        if (!service.saveUser(user)) return ResponseEntity.internalServerError().build();
+        return ResponseEntity.status(201).build();
     }
 
     @PostMapping("login")
-    public String login(@RequestBody User user){
-
-        Authentication authentication = authenticationManager
-                .authenticate(new UsernamePasswordAuthenticationToken(user.getUsername(),user.getPassword()));
-
-        return jwtService.generateToken(user.getUsername());
-
+    public ResponseEntity<JwtResponse> login(@RequestBody User user){
+        JwtResponse logined = service.login(user);
+        if (logined.getToken() == null) return ResponseEntity.status(403).build();
+        return ResponseEntity.accepted().body(logined);
     }
 
 

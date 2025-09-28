@@ -1,4 +1,4 @@
-package com.marvel.springsecurity.model;
+package com.marvel.springsecurity.dto;
 
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -20,4 +20,6 @@ public class User {
     private String username;
     private String password;
     private String role;
+    private String mail;
+
 }

@@ -1,4 +1,4 @@
-package com.marvel.springsecurity.service;
+package com.marvel.springsecurity.service.security;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
@@ -61,7 +61,7 @@ public class JwtService {
         return claimResolver.apply(claims);
     }
 
-    private Claims extractAllClaims(String token) {
+    public Claims extractAllClaims(String token) {
         return Jwts.parserBuilder()
                 .setSigningKey(getKey())
                 .build().parseClaimsJws(token).getBody();

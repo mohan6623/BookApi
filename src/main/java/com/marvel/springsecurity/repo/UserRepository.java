@@ -1,6 +1,6 @@
 package com.marvel.springsecurity.repo;
 
-import com.marvel.springsecurity.model.User;
+import com.marvel.springsecurity.dto.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 

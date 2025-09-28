@@ -1,7 +1,8 @@
 package com.marvel.springsecurity.config;
 
-import com.marvel.springsecurity.service.JwtService;
-import com.marvel.springsecurity.service.MyUserDetailService;
+import com.marvel.springsecurity.service.security.JwtService;
+import com.marvel.springsecurity.service.security.MyUserDetailService;
+import io.jsonwebtoken.Claims;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -33,8 +34,16 @@ public class JwtFilter extends OncePerRequestFilter {
         String token = null;
         String username = null;
 
+//        Enumeration<String> headerNames = request.getHeaderNames();
+//        while (headerNames.hasMoreElements()) {
+//            String headerName = headerNames.nextElement();
+//            System.out.println(headerName + ": " + request.getHeader(headerName));
+//        }
+
+
         if(authHeader != null && authHeader.startsWith("Bearer ")){
             token = authHeader.substring(7);
+            Claims claims = jwtService.extractAllClaims(token);
             username = jwtService.extractUserName(token);
         }
 

@@ -1,6 +1,6 @@
-package com.marvel.springsecurity.service;
+package com.marvel.springsecurity.service.book;
 
-import com.marvel.springsecurity.model.BookModel;
+import com.marvel.springsecurity.dto.BookDto;
 import com.marvel.springsecurity.repo.BookRepo;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -16,7 +16,7 @@ public class BookService {
     public BookService(BookRepo repo) {
         this.repo = repo;    }
 
-    public void addBook(BookModel book, MultipartFile image) throws IOException {
+    public void addBook(BookDto book, MultipartFile image) throws IOException {
 
         book.setImageName(image.getOriginalFilename());
         book.setImage(image.getBytes());
@@ -25,17 +25,22 @@ public class BookService {
     }
 
 
-    public List<BookModel> getBooks() {
+    public List<BookDto> getBooks() {
         return repo.findAll();
     }
 
-    public boolean updateBook(int id, BookModel book, MultipartFile image) throws IOException {
+    public boolean updateBook(int id, BookDto book, MultipartFile image) throws IOException {
+        System.out.println("image : "+ image);
         var existing = repo.findById(id);
-        if(existing.isEmpty()) return false;
+        if(existing.isEmpty()) {
+            System.out.println("Book not found with id: " + id);
+            return false;
+        }
+        existing.get().setTitle(book.getTitle());
+        existing.get().setAuthor(book.getAuthor());
+        existing.get().setDescription(book.getDescription());
+        existing.get().setCategory(book.getCategory());
 
-        existing.get().setImage(book.getImage());
-        existing.get().setImageType(book.getImageType());
-        existing.get().setImageName(book.getImageName());
 
         if (image != null && !image.isEmpty()) {
             existing.get().setImageName(image.getOriginalFilename());
@@ -51,11 +56,15 @@ public class BookService {
         repo.deleteById(id);
     }
 
-    public BookModel getBookById(int id) {
+    public BookDto getBookById(int id) {
         return repo.findById(id).orElse(null);
     }
 
-    public List<BookModel> getBookByTitle(String title) {
+    public List<BookDto> getBookByTitle(String title) {
         return repo.findByBookTitle(title);
+    }
+
+    public List<BookDto> searchBooks(String title, String author, String category) {
+        return repo.searchBooks(title, author, category);
     }
 }
