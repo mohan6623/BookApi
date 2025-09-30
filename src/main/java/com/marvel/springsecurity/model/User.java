@@ -1,4 +1,4 @@
-package com.marvel.springsecurity.dto;
+package com.marvel.springsecurity.model;
 
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -22,4 +22,6 @@ public class User {
     private String role;
     private String mail;
 
+    @Column(nullable = false, columnDefinition = "integer default 0")
+    private int roleVersion = 0;
 }

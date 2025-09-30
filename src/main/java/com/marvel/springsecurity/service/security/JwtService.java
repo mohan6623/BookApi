@@ -3,16 +3,13 @@ package com.marvel.springsecurity.service.security;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
-import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
-import javax.crypto.KeyGenerator;
-import javax.crypto.SecretKey;
+import java.nio.charset.StandardCharsets;
 import java.security.Key;
-import java.security.NoSuchAlgorithmException;
-import java.util.Base64;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
@@ -21,38 +18,48 @@ import java.util.function.Function;
 @Service
 public class JwtService {
 
-    private final String secretKey;
-
-    JwtService() throws NoSuchAlgorithmException {
-        this.secretKey = generateKey();
-    }
-    public String generateKey() throws NoSuchAlgorithmException {
-        KeyGenerator keyGen = KeyGenerator.getInstance("HmacSHA256");
-        SecretKey secretKey = keyGen.generateKey();
-        System.out.println(keyGen + " " + secretKey);
-        return Base64.getEncoder().encodeToString(secretKey.getEncoded());
-    }
+    @Value("${jwt.secret}")
+    private String secretKey;
 
     public String generateToken(String username) {
-
         Map<String, Object> claims = new HashMap<>();
-
         return Jwts.builder()
                 .setClaims(claims)
                 .setSubject(username)
                 .setIssuedAt(new Date(System.currentTimeMillis()))
                 .setExpiration(new Date(System.currentTimeMillis() + 1000*60*300))
                 .signWith(getKey(), SignatureAlgorithm.HS256).compact();
+    }
 
+    public String generateToken(String username, String role) {
+        Map<String, Object> claims = new HashMap<>();
+        claims.put("role", role);
+        return Jwts.builder()
+                .setClaims(claims)
+                .setSubject(username)
+                .setIssuedAt(new Date(System.currentTimeMillis()))
+                .setExpiration(new Date(System.currentTimeMillis() + 1000*60*300))
+                .signWith(getKey(), SignatureAlgorithm.HS256).compact();
+    }
+
+    public String generateToken(String username, String role, int roleVersion) {
+        Map<String, Object> claims = new HashMap<>();
+        claims.put("role", role);
+        claims.put("roleVersion", roleVersion);
+        return Jwts.builder()
+                .setClaims(claims)
+                .setSubject(username)
+                .setIssuedAt(new Date(System.currentTimeMillis()))
+                .setExpiration(new Date(System.currentTimeMillis() + 1000*60*300))
+                .signWith(getKey(), SignatureAlgorithm.HS256).compact();
     }
 
     private Key getKey() {
-        byte[] keyBytes = Decoders.BASE64.decode(secretKey);
+        byte[] keyBytes = secretKey.getBytes(StandardCharsets.UTF_8);
         return Keys.hmacShaKeyFor(keyBytes);
     }
 
     public String extractUserName(String token) {
-        // extract the username from jwt token
         return extractClaim(token, Claims::getSubject);
     }
 
@@ -67,6 +74,10 @@ public class JwtService {
                 .build().parseClaimsJws(token).getBody();
     }
 
+    // Lightweight validation for stateless auth
+    public boolean validateToken(String token) {
+        return !isTokenExpired(token);
+    }
 
     public boolean validateToken(String token, UserDetails userDetails) {
         final String userName = extractUserName(token);

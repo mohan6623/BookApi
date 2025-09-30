@@ -2,7 +2,7 @@ package com.marvel.springsecurity.service.security;
 
 import com.marvel.springsecurity.dto.JwtResponse;
 import com.marvel.springsecurity.dto.UserDto;
-import com.marvel.springsecurity.dto.User;
+import com.marvel.springsecurity.model.User;
 import com.marvel.springsecurity.repo.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -21,7 +21,7 @@ public class UserService {
     @Autowired
     AuthenticationManager authenticationManager;
 
-    private BCryptPasswordEncoder encoder= new BCryptPasswordEncoder(12);
+    private final BCryptPasswordEncoder encoder= new BCryptPasswordEncoder(12);
 
 
     public Boolean saveUser(User user) {
@@ -29,9 +29,12 @@ public class UserService {
             return userRepo.save(user) != null;
         }
 
-
-    public User findByUsername(String username) {
-        return userRepo.findByUsername(username);
+    private static UserDto toDto(User u) {
+        String displayRole = u.getRole();
+        if (displayRole != null && displayRole.startsWith("ROLE_")) {
+            displayRole = displayRole.substring(5);
+        }
+        return new UserDto(u.getId(), u.getUsername(), u.getMail(), displayRole);
     }
 
     public JwtResponse login(User user) {
@@ -40,16 +43,12 @@ public class UserService {
 
         // Fetch user details from DB
         User dbUser = userRepo.findByUsername(user.getUsername());
-        // Map User to UserDto
-        UserDto userDto = new UserDto(
-                dbUser.getId(),
-                dbUser.getUsername(),
-                dbUser.getMail(),
-                dbUser.getRole()
-        );
-        // Generate JWT
-        String token = jwtService.generateToken(dbUser.getUsername());
-        // Return response
-        return new JwtResponse(token, userDto);
+        String role = dbUser.getRole();
+        if (role != null && !role.startsWith("ROLE_")) {
+            role = "ROLE_" + role;
+        }
+        int roleVersion = dbUser.getRoleVersion();
+        String token = jwtService.generateToken(dbUser.getUsername(), role, roleVersion);
+        return new JwtResponse(token, toDto(dbUser));
     }
 }

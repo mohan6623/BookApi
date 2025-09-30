@@ -1,6 +1,6 @@
 package com.marvel.springsecurity.service.security;
 
-import com.marvel.springsecurity.dto.User;
+import com.marvel.springsecurity.model.User;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;

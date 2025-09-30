@@ -1,4 +1,4 @@
-package com.marvel.springsecurity.dto;
+package com.marvel.springsecurity.model;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -12,7 +12,7 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class BookDto {
+public class Book {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

@@ -1,6 +1,6 @@
 package com.marvel.springsecurity.service.security;
 
-import com.marvel.springsecurity.dto.User;
+import com.marvel.springsecurity.model.User;
 import com.marvel.springsecurity.repo.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.userdetails.UserDetails;

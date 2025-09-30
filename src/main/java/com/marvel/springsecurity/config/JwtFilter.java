@@ -1,22 +1,23 @@
 package com.marvel.springsecurity.config;
 
 import com.marvel.springsecurity.service.security.JwtService;
-import com.marvel.springsecurity.service.security.MyUserDetailService;
+import com.marvel.springsecurity.service.security.RoleVersionService;
 import io.jsonwebtoken.Claims;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.ApplicationContext;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.util.List;
 
 @Component
 public class JwtFilter extends OncePerRequestFilter {
@@ -25,7 +26,7 @@ public class JwtFilter extends OncePerRequestFilter {
     JwtService jwtService;
 
     @Autowired
-    ApplicationContext context;
+    RoleVersionService roleVersionService;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
@@ -34,31 +35,33 @@ public class JwtFilter extends OncePerRequestFilter {
         String token = null;
         String username = null;
 
-//        Enumeration<String> headerNames = request.getHeaderNames();
-//        while (headerNames.hasMoreElements()) {
-//            String headerName = headerNames.nextElement();
-//            System.out.println(headerName + ": " + request.getHeader(headerName));
-//        }
-
-
         if(authHeader != null && authHeader.startsWith("Bearer ")){
             token = authHeader.substring(7);
-            Claims claims = jwtService.extractAllClaims(token);
-            username = jwtService.extractUserName(token);
-        }
+            try {
+                Claims claims = jwtService.extractAllClaims(token);
+                username = claims.getSubject();
+                String role = claims.get("role", String.class);
+                Integer tokenRoleVersion = claims.get("roleVersion", Integer.class);
 
-        if (username != null && SecurityContextHolder.getContext().getAuthentication()==null){
+                if (username != null && role != null && tokenRoleVersion != null
+                        && SecurityContextHolder.getContext().getAuthentication() == null
+                        && jwtService.validateToken(token)
+                        && roleVersionService.isTokenRoleVersionCurrent(username, tokenRoleVersion)) {
 
-            UserDetails userDetails = context.getBean(MyUserDetailService.class).loadUserByUsername(username);
-
-            if(jwtService.validateToken(token, userDetails)) {
-                UsernamePasswordAuthenticationToken authToken =
-                        new UsernamePasswordAuthenticationToken(userDetails,null,userDetails.getAuthorities());
-                authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                SecurityContextHolder.getContext().setAuthentication(authToken);
-
+                    if (!role.startsWith("ROLE_")) {
+                        role = "ROLE_" + role;
+                    }
+                    List<GrantedAuthority> authorities = List.of(new SimpleGrantedAuthority(role));
+                    UsernamePasswordAuthenticationToken authToken =
+                            new UsernamePasswordAuthenticationToken(username, null, authorities);
+                    authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                    SecurityContextHolder.getContext().setAuthentication(authToken);
+                }
+            } catch (Exception ex) {
+                // Invalid token; proceed without setting authentication
             }
         }
+
         filterChain.doFilter(request, response);
     }
 }

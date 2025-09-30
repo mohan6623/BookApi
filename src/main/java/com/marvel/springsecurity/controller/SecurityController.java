@@ -2,7 +2,7 @@ package com.marvel.springsecurity.controller;
 
 
 import com.marvel.springsecurity.dto.JwtResponse;
-import com.marvel.springsecurity.dto.User;
+import com.marvel.springsecurity.model.User;
 import com.marvel.springsecurity.service.security.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -33,10 +33,8 @@ public class SecurityController {
 
     @PostMapping("login")
     public ResponseEntity<JwtResponse> login(@RequestBody User user){
-        JwtResponse logined = service.login(user);
-        if (logined.getToken() == null) return ResponseEntity.status(403).build();
-        return ResponseEntity.accepted().body(logined);
+        JwtResponse jwt = service.login(user);
+        if (jwt == null) return ResponseEntity.status(403).build();
+        return ResponseEntity.accepted().body(jwt);
     }
-
-
 }

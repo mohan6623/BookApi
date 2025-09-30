@@ -1,6 +1,7 @@
 package com.marvel.springsecurity.controller;
 
-import com.marvel.springsecurity.dto.BookDto;
+import com.marvel.springsecurity.model.Book;
+import com.marvel.springsecurity.model.Rating;
 import com.marvel.springsecurity.service.book.BookService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -20,9 +21,9 @@ public class BookController {
     public BookController(BookService service) {
         this.service = service;
     }
-    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
     @PostMapping(path = "/addbook")
-    public ResponseEntity<String> addBook(@RequestPart BookDto book, @RequestPart MultipartFile imageFile) {
+    public ResponseEntity<String> addBook(@RequestPart Book book, @RequestPart MultipartFile imageFile) {
         try {
 //            System.out.println("book = " + book);
             service.addBook(book, imageFile);
@@ -32,25 +33,25 @@ public class BookController {
         }
     }
 
-    @PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_USER')")
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_USER')")
     @GetMapping("/books")  //, produces = {"application/json"})
-    public ResponseEntity<List<BookDto>> getBooks(){
-        List<BookDto> books = service.getBooks();
+    public ResponseEntity<List<Book>> getBooks(){
+        List<Book> books = service.getBooks();
         if (books.isEmpty()) {
             return ResponseEntity.noContent().build();
         }
         // Set imageBase64 for each book
-        for (BookDto book : books) {
+        for (Book book : books) {
             if (book.getImage() != null) {
                 book.setImageBase64(book.getImageBase64());
             }
         }
         return ResponseEntity.ok(books);
     }
-    @PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_USER')")
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_USER')")
     @GetMapping("/book/{id}")
-    public ResponseEntity<BookDto> getBook(@PathVariable int id){
-        BookDto book = service.getBookById(id);
+    public ResponseEntity<Book> getBook(@PathVariable int id){
+        Book book = service.getBookById(id);
         if (book == null) {
             return ResponseEntity.notFound().build();
         }
@@ -63,9 +64,9 @@ public class BookController {
         return ResponseEntity.ok(book);
     }
 
-    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
     @PutMapping("/book/{id}")
-    public ResponseEntity<String> updateBook(@PathVariable int id, @RequestPart BookDto book, @RequestPart(required = false) MultipartFile imageFile) {
+    public ResponseEntity<String> updateBook(@PathVariable int id, @RequestPart Book book, @RequestPart(required = false) MultipartFile imageFile) {
         try {
             boolean updated = service.updateBook(id, book, imageFile);
             if (updated) {
@@ -78,7 +79,7 @@ public class BookController {
         }
     }
 
-    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
     @DeleteMapping("/book/{id}")
     public ResponseEntity<String> deleteBook(@PathVariable int id) {
         service.deleteBook(id);
@@ -95,22 +96,29 @@ public class BookController {
 //        return ResponseEntity.ok(books);
 //    }
 
-    @PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_USER')")
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_USER')")
     @GetMapping("/books/search")
-    public ResponseEntity<List<BookDto>> searchBooks(
+    public ResponseEntity<List<Book>> searchBooks(
             @RequestParam(required = false) String title,
             @RequestParam(required = false) String author,
             @RequestParam(required = false) String category) {
-        List<BookDto> books = service.searchBooks(title, author, category);
+        List<Book> books = service.searchBooks(title, author, category);
         if (books.isEmpty()) {
             return ResponseEntity.noContent().build();
         }
         // Set imageBase64 for each book in search results
-        for (BookDto book : books) {
+        for (Book book : books) {
             if (book.getImage() != null) {
                 book.setImageBase64(book.getImageBase64());
             }
         }
         return ResponseEntity.ok(books);
     }
+
+    @PostMapping("/review/{id}")
+    public ResponseEntity<Void> setReview(@PathVariable int id, @RequestBody Rating review){
+        service.addReview(id, review);
+        return ResponseEntity.ok().build();
+    }
+
 }
