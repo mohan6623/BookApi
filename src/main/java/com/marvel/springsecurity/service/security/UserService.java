@@ -48,7 +48,7 @@ public class UserService {
             role = "ROLE_" + role;
         }
         int roleVersion = dbUser.getRoleVersion();
-        String token = jwtService.generateToken(dbUser.getUsername(), role, roleVersion);
+        String token = jwtService.generateToken(dbUser.getUsername(), role, roleVersion, dbUser.getId());
         return new JwtResponse(token, toDto(dbUser));
     }
 }

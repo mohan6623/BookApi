@@ -42,15 +42,16 @@ public class JwtService {
                 .signWith(getKey(), SignatureAlgorithm.HS256).compact();
     }
 
-    public String generateToken(String username, String role, int roleVersion) {
+    public String generateToken(String username, String role, int roleVersion, int userId) {
         Map<String, Object> claims = new HashMap<>();
         claims.put("role", role);
         claims.put("roleVersion", roleVersion);
+        claims.put("userId", userId);
         return Jwts.builder()
                 .setClaims(claims)
                 .setSubject(username)
                 .setIssuedAt(new Date(System.currentTimeMillis()))
-                .setExpiration(new Date(System.currentTimeMillis() + 1000*60*300))
+                .setExpiration(new Date(System.currentTimeMillis() + 1000*60*30))
                 .signWith(getKey(), SignatureAlgorithm.HS256).compact();
     }
 

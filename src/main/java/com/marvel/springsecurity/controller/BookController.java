@@ -1,6 +1,9 @@
 package com.marvel.springsecurity.controller;
 
+import com.marvel.springsecurity.dto.BookDto;
+import com.marvel.springsecurity.dto.CommentsDto;
 import com.marvel.springsecurity.model.Book;
+import com.marvel.springsecurity.model.Comment;
 import com.marvel.springsecurity.model.Rating;
 import com.marvel.springsecurity.service.book.BookService;
 import org.springframework.http.HttpStatus;
@@ -11,13 +14,14 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 //@RequestMapping("/api")
 public class BookController {
 
     private final BookService service;
-//for constructor injection
+    //for constructor injection
     public BookController(BookService service) {
         this.service = service;
     }
@@ -35,16 +39,10 @@ public class BookController {
 
     @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_USER')")
     @GetMapping("/books")  //, produces = {"application/json"})
-    public ResponseEntity<List<Book>> getBooks(){
-        List<Book> books = service.getBooks();
+    public ResponseEntity<List<BookDto>> getBooks(){
+        List<BookDto> books = service.getBooks();
         if (books.isEmpty()) {
             return ResponseEntity.noContent().build();
-        }
-        // Set imageBase64 for each book
-        for (Book book : books) {
-            if (book.getImage() != null) {
-                book.setImageBase64(book.getImageBase64());
-            }
         }
         return ResponseEntity.ok(books);
     }
@@ -86,15 +84,29 @@ public class BookController {
         return ResponseEntity.ok("Book deleted successfully");
     }
 
-//    @PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_USER')")
-//    @GetMapping("/title/{title}")
-//    public ResponseEntity<List<BookDto>> getBookByTitle(@PathVariable String title){
-//        List<BookDto> books = service.getBookByTitle(title);
-//        if(books.isEmpty()){
-//            return ResponseEntity.noContent().build();
-//        }
-//        return ResponseEntity.ok(books);
-//    }
+    @PostMapping("/book/{id}/addrating")
+    public ResponseEntity<Void> addRating(@PathVariable int id, @RequestBody Rating review){
+        return service.addRating(id, review);
+    }
+
+    @PostMapping("/book/{id}/addcomment")
+    public ResponseEntity<Void> addComment(@PathVariable int id,@RequestBody Comment comment){
+        return service.addComment(id,comment);
+    }
+
+    @GetMapping("/book/{id}/getcomment")
+    public ResponseEntity<List<CommentsDto>> getComments(@PathVariable int id){
+        List<CommentsDto> comments = service.getComments(id);
+        if(comments.isEmpty()) return ResponseEntity.noContent().build();
+        return ResponseEntity.ok(comments);
+    }
+
+    @GetMapping("/book/{id}/getratings")
+    public ResponseEntity<Map<Integer, Integer>> getRatings(@PathVariable int id){
+        Map<Integer, Integer> ratings = service.getRatings(id);
+        return ResponseEntity.ok(ratings);
+    }
+
 
     @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_USER')")
     @GetMapping("/books/search")
@@ -115,10 +127,6 @@ public class BookController {
         return ResponseEntity.ok(books);
     }
 
-    @PostMapping("/review/{id}")
-    public ResponseEntity<Void> setReview(@PathVariable int id, @RequestBody Rating review){
-        service.addReview(id, review);
-        return ResponseEntity.ok().build();
-    }
+
 
 }
