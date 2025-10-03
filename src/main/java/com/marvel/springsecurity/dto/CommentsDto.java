@@ -12,6 +12,8 @@ import java.time.LocalDateTime;
 public class CommentsDto {
     private int id;
     private String comment;
+    private int bookId;
     private String username;
     private LocalDateTime createdAt;
+
 }

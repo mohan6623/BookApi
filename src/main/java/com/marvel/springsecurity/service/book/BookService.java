@@ -46,24 +46,23 @@ public class BookService {
         bookRepo.save(book);
     }
 
-    public Book getBookById(int id) {
-        return bookRepo.findById(id).orElse(null);
+    public BookDto getBookById(int bookId) {
+        Book book = bookRepo.findById(bookId).orElse(null);
+        if(book == null) return null;
+        return new BookDto(book, getAvgAndCountRating(bookId));
     }
 
     public List<BookDto> getBooks() {
 
         List<Book> books = bookRepo.findAll();
-        List<Rating> ratings = ratingRepo.findAll();
 
-        return books.stream()
-                .map(b -> {
-                    b.setImageBase64(b.getImageBase64());
-                    double average = getRating(ratings, b.getId());
-                    return new BookDto(b, average);
-                }).toList();
+        return
     }
+    private Object[] getAvgAndCountRating(int bookId){
+        return ratingRepo.AverageAndCountByBookId(bookId);
 
-    private double getRating(List<Rating> ratings, int id){
+    }
+    private double getRatings(List<Rating> ratings, int id){
         return ratings.isEmpty() ? 0.0 : ratings.stream()
                 .filter(f -> f.getBook().getId() == id)
                 .mapToInt(Rating::getRating)
@@ -94,7 +93,10 @@ public class BookService {
 
 
     public void deleteBook(int id) {
+        commentRepo.deleteAllByBookId(id);
+        ratingRepo.deleteAllByBookId(id);
         bookRepo.deleteById(id);
+
     }
 
 //    public List<Book> getBookByTitle(String title) {
@@ -117,41 +119,15 @@ public class BookService {
         return ResponseEntity.ok().build();
     }
 
-    public ResponseEntity<Void> addComment(int id, Comment comment) {
-        if (getUserId() == -1) return ResponseEntity.status(401).build();
-        Book book = new Book();
-        book.setId(id);
-        User user = new User();
-        user.setId(getUserId());
-        comment.setUser(user);
-        comment.setBook(book);
-        commentRepo.save(comment);
-        return ResponseEntity.ok().build();
-    }
-
-    public List<CommentsDto> getComments(int id) {
-        List<Comment> comments = commentRepo.findAllByBookId(id);
-
-        return comments.stream()
-                .map(c -> new CommentsDto(
-                        c.getId(),
-                        c.getComment(),
-                        c.getUser().getUsername(),
-                        c.getCreatedAt()
-                ))
-                .toList();
-
-    }
-
     public Map<Integer, Integer> getRatings(int id) {
         List<Rating> ratings = ratingRepo.findAllByBookId(id);
         if (ratings.isEmpty()) return new HashMap<>();
         Map<Integer, Integer> ratingCount = new HashMap<>(Map.of(
-            1, 0,
-            2, 0,
-            3, 0,
-            4, 0,
-            5, 0
+                1, 0,
+                2, 0,
+                3, 0,
+                4, 0,
+                5, 0
         ));
 
         for(Rating r: ratings){
@@ -169,12 +145,40 @@ public class BookService {
     }
 
 
+    public boolean addComment(int id, CommentsDto comment) {
+        return commentRepo.save(new Comment(comment, getUserId())) != null;
+
+    }
+
+    public List<CommentsDto> getComments(int id) {
+        List<Comment> comments = commentRepo.findAllByBookId(id);
+
+        return comments.stream()
+                .map(c -> new CommentsDto(
+                        c.getId(),
+                        c.getComment(),
+                        c.getBook().getId(),
+                        c.getUser().getUsername(),
+                        c.getCreatedAt()
+                ))
+                .toList();
+
+    }
+
+    public boolean updateComment(CommentsDto comment) {
+        return commentRepo.save(new Comment(comment, getUserId())) != null;
+    }
+
+    public void deleteComment(int id) {
+        commentRepo.deleteById(id);
+    }
+
 
     private String getUsername(){
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         return (auth != null)? auth.getName() : null;
     }
-    private int getUserId(){
+    public int getUserId(){
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if (auth != null && auth.getPrincipal() instanceof UserPrincipal) {
             UserPrincipal userPrincipal = (UserPrincipal) auth.getPrincipal();
@@ -184,6 +188,7 @@ public class BookService {
     }
 
 }
+
 
 
 

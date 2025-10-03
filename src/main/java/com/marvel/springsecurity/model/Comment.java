@@ -1,6 +1,7 @@
 package com.marvel.springsecurity.model;
 
 
+import com.marvel.springsecurity.dto.CommentsDto;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -32,4 +33,15 @@ public class Comment {
 
     @CreationTimestamp
     private LocalDateTime createdAt;
+
+    public Comment(CommentsDto comment, int userId){
+        this.id = comment.getId();
+        this.comment = comment.getComment();
+        this.book = new Book();
+        this.user = new User();
+        this.book.setId(comment.getBookId());
+        this.user.setId(userId);
+        this.createdAt = comment.getCreatedAt();
+
+    }
 }

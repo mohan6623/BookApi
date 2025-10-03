@@ -3,7 +3,6 @@ package com.marvel.springsecurity.controller;
 import com.marvel.springsecurity.dto.BookDto;
 import com.marvel.springsecurity.dto.CommentsDto;
 import com.marvel.springsecurity.model.Book;
-import com.marvel.springsecurity.model.Comment;
 import com.marvel.springsecurity.model.Rating;
 import com.marvel.springsecurity.service.book.BookService;
 import org.springframework.http.HttpStatus;
@@ -46,20 +45,13 @@ public class BookController {
         }
         return ResponseEntity.ok(books);
     }
+
     @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_USER')")
     @GetMapping("/book/{id}")
-    public ResponseEntity<Book> getBook(@PathVariable int id){
-        Book book = service.getBookById(id);
-        if (book == null) {
-            return ResponseEntity.notFound().build();
-        }
-        if (book.getImage() != null) {
-            // Set imageBase64 for the book
-            book.setImageBase64(book.getImageBase64());
-        } else {
-            System.out.println("No image found for book");
-        }
-        return ResponseEntity.ok(book);
+    public ResponseEntity<BookDto> getBook(@PathVariable int id){
+        BookDto book = service.getBookById(id);
+        if (book != null) return ResponseEntity.ok(book);
+        return ResponseEntity.notFound().build();
     }
 
     @PreAuthorize("hasAuthority('ROLE_ADMIN')")
@@ -84,29 +76,44 @@ public class BookController {
         return ResponseEntity.ok("Book deleted successfully");
     }
 
-    @PostMapping("/book/{id}/addrating")
+    @PostMapping("/book/{id}/rating")
     public ResponseEntity<Void> addRating(@PathVariable int id, @RequestBody Rating review){
         return service.addRating(id, review);
     }
 
-    @PostMapping("/book/{id}/addcomment")
-    public ResponseEntity<Void> addComment(@PathVariable int id,@RequestBody Comment comment){
-        return service.addComment(id,comment);
+    @GetMapping("/book/{id}/ratings")
+    public ResponseEntity<Map<Integer, Integer>> getRatings(@PathVariable int id){
+        Map<Integer, Integer> ratings = service.getRatings(id);
+        return ResponseEntity.ok(ratings);
     }
 
-    @GetMapping("/book/{id}/getcomment")
+    @GetMapping("/book/{id}/comment")
     public ResponseEntity<List<CommentsDto>> getComments(@PathVariable int id){
         List<CommentsDto> comments = service.getComments(id);
         if(comments.isEmpty()) return ResponseEntity.noContent().build();
         return ResponseEntity.ok(comments);
     }
 
-    @GetMapping("/book/{id}/getratings")
-    public ResponseEntity<Map<Integer, Integer>> getRatings(@PathVariable int id){
-        Map<Integer, Integer> ratings = service.getRatings(id);
-        return ResponseEntity.ok(ratings);
+    @PostMapping("/book/{id}/comment")
+    public ResponseEntity<Void> addComment(@PathVariable int id,@RequestBody CommentsDto comment){
+        if (service.getUserId() == -1) return ResponseEntity.status(401).build();
+        if (!service.addComment(id,comment)) return ResponseEntity.internalServerError().build();
+        return ResponseEntity.ok().build();
     }
 
+    @PutMapping("/book/{id}/comment")
+    public ResponseEntity<Void> updateComment(@RequestBody CommentsDto comment){
+        if (service.getUserId() == -1) return ResponseEntity.status(401).build();
+        if(comment == null) return ResponseEntity.status(406).build();
+        if(service.updateComment(comment)) return ResponseEntity.ok().build();
+        return ResponseEntity.internalServerError().build();
+    }
+
+    @DeleteMapping("comment/{commentId}")
+    public ResponseEntity<Void> deleteComment(@PathVariable int commentId){
+        service.deleteComment(commentId);
+        return ResponseEntity.ok().build();
+    }
 
     @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_USER')")
     @GetMapping("/books/search")
