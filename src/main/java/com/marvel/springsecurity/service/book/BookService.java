@@ -12,6 +12,8 @@ import com.marvel.springsecurity.repo.CommentRepo;
 import com.marvel.springsecurity.repo.RatingRepo;
 import com.marvel.springsecurity.repo.UserRepository;
 import com.marvel.springsecurity.service.security.UserPrincipal;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -29,13 +31,11 @@ public class BookService {
     private final BookRepo bookRepo;
     private final RatingRepo ratingRepo;
     private final CommentRepo commentRepo;
-    private final UserRepository userRepo;
 
     public BookService(BookRepo bookRepo, RatingRepo ratingRepo, CommentRepo commentRepo, UserRepository userRepo) {
         this.bookRepo = bookRepo;
         this.ratingRepo = ratingRepo;
         this.commentRepo = commentRepo;
-        this.userRepo = userRepo;
     }
 
     public void addBook(Book book, MultipartFile image) throws IOException {
@@ -52,26 +52,18 @@ public class BookService {
         return new BookDto(book, getAvgAndCountRating(bookId));
     }
 
-    public List<BookDto> getBooks() {
-
-        List<Book> books = bookRepo.findAll();
-
-        return
+    public Page<BookDto> getBooks(int page, int size) {
+        var pageable = PageRequest.of(page, size);
+        Page<Object[]> data = bookRepo.findBooksWithRatings(pageable);
+        return data.map(line ->
+                new BookDto((Book) line[0], (Double) line[1], (Integer) line[2]));
     }
+
     private Object[] getAvgAndCountRating(int bookId){
         return ratingRepo.AverageAndCountByBookId(bookId);
-
-    }
-    private double getRatings(List<Rating> ratings, int id){
-        return ratings.isEmpty() ? 0.0 : ratings.stream()
-                .filter(f -> f.getBook().getId() == id)
-                .mapToInt(Rating::getRating)
-                .average()
-                .orElse(0.0);
     }
 
     public boolean updateBook(int id, Book book, MultipartFile image) throws IOException {
-        System.out.println("image : "+ image);
         var existing = bookRepo.findById(id);
         if(existing.isEmpty()) {
             System.out.println("Book not found with id: " + id);
@@ -91,7 +83,6 @@ public class BookService {
         return true;
     }
 
-
     public void deleteBook(int id) {
         commentRepo.deleteAllByBookId(id);
         ratingRepo.deleteAllByBookId(id);
@@ -99,12 +90,11 @@ public class BookService {
 
     }
 
-//    public List<Book> getBookByTitle(String title) {
-//        return bookRepo.findByBookTitle(title);
-//    }
-
-    public List<Book> searchBooks(String title, String author, String category) {
-        return bookRepo.searchBooks(title, author, category);
+    public Page<BookDto> searchBooks(String title, String author, String category, int page, int size) {
+        var pageable = PageRequest.of(page, size);
+        Page<Object[]> data = bookRepo.searchBooks(title, author, category, pageable);
+        return data.map(line ->
+                new BookDto((Book) line[0],(Double) line[1]));
     }
 
     public ResponseEntity<Void> addRating(int bookId, Rating rating) {
@@ -145,28 +135,27 @@ public class BookService {
     }
 
 
-    public boolean addComment(int id, CommentsDto comment) {
-        return commentRepo.save(new Comment(comment, getUserId())) != null;
+    public Comment addComment(int id, CommentsDto comment) {
+        return commentRepo.save(new Comment(comment, getUserId()));
+    }
+
+    public Page<CommentsDto> getComments(int id, int page, int size) {
+        var pageable = PageRequest.of(page, size);
+        Page<Comment> comments = commentRepo.findAllByBookId(id, pageable);
+
+        return comments.map(c ->
+                        new CommentsDto(
+                            c.getId(),
+                            c.getComment(),
+                            c.getBook().getId(),
+                            c.getUser().getUsername(),
+                            c.getCreatedAt()
+                ));
 
     }
 
-    public List<CommentsDto> getComments(int id) {
-        List<Comment> comments = commentRepo.findAllByBookId(id);
-
-        return comments.stream()
-                .map(c -> new CommentsDto(
-                        c.getId(),
-                        c.getComment(),
-                        c.getBook().getId(),
-                        c.getUser().getUsername(),
-                        c.getCreatedAt()
-                ))
-                .toList();
-
-    }
-
-    public boolean updateComment(CommentsDto comment) {
-        return commentRepo.save(new Comment(comment, getUserId())) != null;
+    public Comment updateComment(CommentsDto comment) {
+        return commentRepo.save(new Comment(comment, getUserId()));
     }
 
     public void deleteComment(int id) {
@@ -188,7 +177,3 @@ public class BookService {
     }
 
 }
-
-
-
-

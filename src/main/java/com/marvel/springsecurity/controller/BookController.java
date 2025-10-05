@@ -5,6 +5,7 @@ import com.marvel.springsecurity.dto.CommentsDto;
 import com.marvel.springsecurity.model.Book;
 import com.marvel.springsecurity.model.Rating;
 import com.marvel.springsecurity.service.book.BookService;
+import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -12,7 +13,6 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
-import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -38,8 +38,8 @@ public class BookController {
 
     @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_USER')")
     @GetMapping("/books")  //, produces = {"application/json"})
-    public ResponseEntity<List<BookDto>> getBooks(){
-        List<BookDto> books = service.getBooks();
+    public ResponseEntity<Page<BookDto>> getBooks(@RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "10") int size){
+        Page<BookDto> books = service.getBooks(page, size);
         if (books.isEmpty()) {
             return ResponseEntity.noContent().build();
         }
@@ -88,25 +88,28 @@ public class BookController {
     }
 
     @GetMapping("/book/{id}/comment")
-    public ResponseEntity<List<CommentsDto>> getComments(@PathVariable int id){
-        List<CommentsDto> comments = service.getComments(id);
+    public ResponseEntity<Page<CommentsDto>> getComments(@PathVariable int id, @RequestParam int page, @RequestParam int size){
+        Page<CommentsDto> comments = service.getComments(id, page, size);
         if(comments.isEmpty()) return ResponseEntity.noContent().build();
         return ResponseEntity.ok(comments);
     }
 
     @PostMapping("/book/{id}/comment")
-    public ResponseEntity<Void> addComment(@PathVariable int id,@RequestBody CommentsDto comment){
+    public ResponseEntity<CommentsDto> addComment(@PathVariable int id,@RequestBody CommentsDto comment){
+        if(comment == null) return ResponseEntity.status(406).build();
         if (service.getUserId() == -1) return ResponseEntity.status(401).build();
-        if (!service.addComment(id,comment)) return ResponseEntity.internalServerError().build();
-        return ResponseEntity.ok().build();
+        var newComment = service.addComment(id,comment);
+        if (newComment == null) return ResponseEntity.internalServerError().build();
+        return ResponseEntity.ok(new CommentsDto(newComment));
     }
 
     @PutMapping("/book/{id}/comment")
-    public ResponseEntity<Void> updateComment(@RequestBody CommentsDto comment){
-        if (service.getUserId() == -1) return ResponseEntity.status(401).build();
+    public ResponseEntity<CommentsDto> updateComment(@RequestBody(required = true) CommentsDto comment){
         if(comment == null) return ResponseEntity.status(406).build();
-        if(service.updateComment(comment)) return ResponseEntity.ok().build();
-        return ResponseEntity.internalServerError().build();
+        if (service.getUserId() == -1) return ResponseEntity.status(401).build();
+        var updated = service.updateComment(comment);
+        if(updated == null) return ResponseEntity.internalServerError().build();
+        return ResponseEntity.ok(new CommentsDto(updated));
     }
 
     @DeleteMapping("comment/{commentId}")
@@ -117,20 +120,14 @@ public class BookController {
 
     @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_USER')")
     @GetMapping("/books/search")
-    public ResponseEntity<List<Book>> searchBooks(
+    public ResponseEntity<Page<BookDto>> searchBooks(
             @RequestParam(required = false) String title,
             @RequestParam(required = false) String author,
-            @RequestParam(required = false) String category) {
-        List<Book> books = service.searchBooks(title, author, category);
-        if (books.isEmpty()) {
-            return ResponseEntity.noContent().build();
-        }
-        // Set imageBase64 for each book in search results
-        for (Book book : books) {
-            if (book.getImage() != null) {
-                book.setImageBase64(book.getImageBase64());
-            }
-        }
+            @RequestParam(required = false) String category,
+            @RequestParam int page,
+            @RequestParam int size) {
+        Page<BookDto> books = service.searchBooks(title, author, category, page, size);
+        if (books == null) return ResponseEntity.noContent().build();
         return ResponseEntity.ok(books);
     }
 

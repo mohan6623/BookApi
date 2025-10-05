@@ -1,5 +1,6 @@
 package com.marvel.springsecurity.dto;
 
+import com.marvel.springsecurity.model.Comment;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -16,4 +17,11 @@ public class CommentsDto {
     private String username;
     private LocalDateTime createdAt;
 
+    public CommentsDto(Comment newComment) {
+        this.id = newComment.getId();
+        this.comment = newComment.getComment();
+        this.bookId = newComment.getBook().getId();
+        this.username = newComment.getUser().getUsername();
+        this.createdAt = newComment.getCreatedAt();
+    }
 }
