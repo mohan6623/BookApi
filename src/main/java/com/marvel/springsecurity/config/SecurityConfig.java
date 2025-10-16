@@ -39,9 +39,13 @@ public class SecurityConfig {
                 .cors(Customizer.withDefaults()) // Enable CORS support
                 // Disable CSRF (Cross-Site Request Forgery) protection for the application
                 .csrf(customize -> customize.disable())
+        // Return 401 without triggering browser basic-auth prompt
+//                .exceptionHandling(e -> e.authenticationEntryPoint((request, response, authException) -> {
+//                    response.setStatus(401);
+//        }))
                 // Configure authorization for HTTP requests, setting all requests to be authenticated.
                 .authorizeHttpRequests(request -> request
-                        .requestMatchers("register","login").permitAll() //to permit without any authentication process.
+                        .requestMatchers("/register","/login","/bookid/").permitAll() // permit auth endpoints
                         .requestMatchers(org.springframework.http.HttpMethod.OPTIONS, "/**").permitAll() // Allow OPTIONS for CORS preflight
                         .anyRequest().authenticated() // will permit only after authenticate.
                 )

@@ -36,9 +36,9 @@ public class BookController {
         }
     }
 
-    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_USER')")
+//    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_USER')")
     @GetMapping("/books")  //, produces = {"application/json"})
-    public ResponseEntity<Page<BookDto>> getBooks(@RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "10") int size){
+    public ResponseEntity<Page<BookDto>> getBooks(@RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "20") int size){
         Page<BookDto> books = service.getBooks(page, size);
         if (books.isEmpty()) {
             return ResponseEntity.noContent().build();
@@ -46,8 +46,8 @@ public class BookController {
         return ResponseEntity.ok(books);
     }
 
-    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_USER')")
-    @GetMapping("/book/{id}")
+//    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_USER')")
+    @GetMapping("/bookid/{id}")
     public ResponseEntity<BookDto> getBook(@PathVariable int id){
         BookDto book = service.getBookById(id);
         if (book != null) return ResponseEntity.ok(book);
@@ -76,10 +76,12 @@ public class BookController {
         return ResponseEntity.ok("Book deleted successfully");
     }
 
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_USER')")
     @PostMapping("/book/{id}/rating")
     public ResponseEntity<Void> addRating(@PathVariable int id, @RequestBody Rating review){
         return service.addRating(id, review);
     }
+
 
     @GetMapping("/book/{id}/ratings")
     public ResponseEntity<Map<Integer, Integer>> getRatings(@PathVariable int id){
@@ -87,6 +89,7 @@ public class BookController {
         return ResponseEntity.ok(ratings);
     }
 
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_USER')")
     @GetMapping("/book/{id}/comment")
     public ResponseEntity<Page<CommentsDto>> getComments(@PathVariable int id, @RequestParam int page, @RequestParam int size){
         Page<CommentsDto> comments = service.getComments(id, page, size);
@@ -94,6 +97,7 @@ public class BookController {
         return ResponseEntity.ok(comments);
     }
 
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_USER')")
     @PostMapping("/book/{id}/comment")
     public ResponseEntity<CommentsDto> addComment(@PathVariable int id,@RequestBody CommentsDto comment){
         if(comment == null) return ResponseEntity.status(406).build();
@@ -103,6 +107,7 @@ public class BookController {
         return ResponseEntity.ok(new CommentsDto(newComment));
     }
 
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_USER')")
     @PutMapping("/book/{id}/comment")
     public ResponseEntity<CommentsDto> updateComment(@RequestBody(required = true) CommentsDto comment){
         if(comment == null) return ResponseEntity.status(406).build();
@@ -112,20 +117,21 @@ public class BookController {
         return ResponseEntity.ok(new CommentsDto(updated));
     }
 
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_USER')")
     @DeleteMapping("comment/{commentId}")
     public ResponseEntity<Void> deleteComment(@PathVariable int commentId){
         service.deleteComment(commentId);
         return ResponseEntity.ok().build();
     }
 
-    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_USER')")
+//    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_USER')")
     @GetMapping("/books/search")
     public ResponseEntity<Page<BookDto>> searchBooks(
-            @RequestParam(required = false) String title,
-            @RequestParam(required = false) String author,
-            @RequestParam(required = false) String category,
-            @RequestParam int page,
-            @RequestParam int size) {
+        @RequestParam(required = false) String title,
+        @RequestParam(required = false) String author,
+        @RequestParam(required = false) String category,
+        @RequestParam(defaultValue = "0") int page,
+        @RequestParam(defaultValue = "30") int size) {
         Page<BookDto> books = service.searchBooks(title, author, category, page, size);
         if (books == null) return ResponseEntity.noContent().build();
         return ResponseEntity.ok(books);

@@ -49,17 +49,23 @@ public class BookService {
     public BookDto getBookById(int bookId) {
         Book book = bookRepo.findById(bookId).orElse(null);
         if(book == null) return null;
-        return new BookDto(book, getAvgAndCountRating(bookId));
+        var rating = getAvgAndCountRating(bookId);
+        if(rating != null) return new BookDto(book, rating);
+        else {
+            var dto = new BookDto(book);
+            dto.setAverageRating(0.0);
+            dto.setNoOfRatings(0);
+            return dto;
+        }
     }
 
     public Page<BookDto> getBooks(int page, int size) {
         var pageable = PageRequest.of(page, size);
         Page<Object[]> data = bookRepo.findBooksWithRatings(pageable);
-        return data.map(line ->
-                new BookDto((Book) line[0], (Double) line[1], (Integer) line[2]));
+        return data.map(BookDto::new);
     }
 
-    private Object[] getAvgAndCountRating(int bookId){
+    private Number[] getAvgAndCountRating(int bookId){
         return ratingRepo.AverageAndCountByBookId(bookId);
     }
 
@@ -94,7 +100,7 @@ public class BookService {
         var pageable = PageRequest.of(page, size);
         Page<Object[]> data = bookRepo.searchBooks(title, author, category, pageable);
         return data.map(line ->
-                new BookDto((Book) line[0],(Double) line[1]));
+                new BookDto((Book) line[0],(Number) line[1]));
     }
 
     public ResponseEntity<Void> addRating(int bookId, Rating rating) {

@@ -15,6 +15,6 @@ public interface RatingRepo extends JpaRepository<Rating, Integer> {
     void deleteAllByBookId(int id);
 
 
-    @Query("SELECT AVG(r.rating), COUNT(r.rating) FROM Rating r WHERE r.book.id = :bookId")
-    Object[] AverageAndCountByBookId(int bookId);
+    @Query("SELECT COALESCE(AVG(r.rating), 0), COALESCE(COUNT(r.rating), 0) FROM Rating r WHERE r.book.id = :bookId")
+    Number[] AverageAndCountByBookId(int bookId);
 }

@@ -18,7 +18,7 @@ public class BookDto {
     private String imageType;
     private String imageBase64;
     private double averageRating;
-    private int noOfRatings;
+    private long noOfRatings;
 
     public BookDto(Book book) {
         this.id = book.getId();
@@ -31,20 +31,20 @@ public class BookDto {
         this.imageBase64 = book.getImageBase64();
     }
 
-    public BookDto(Book book, Object[] obj){
+    public BookDto(Book book, Number[] obj){
         this(book);
-        this.setAverageRating((Double) obj[0]);
-        this.setNoOfRatings((Integer) obj[1]);
+        this.averageRating =obj[0] != null ? (obj[0]).doubleValue() : 0.0;
+        this.noOfRatings = obj[1] != null ? (obj[1]).longValue() : 0;
     }
 
-    public BookDto(Book book, Double avg, Integer cnt){
-        this(book);
-        this.averageRating = avg != null ? avg : 0.0;
-        this.noOfRatings = cnt != null ? cnt : 0;
+    public BookDto(Object[] line){
+        this((Book)line[0]);
+        this.averageRating = line[1] != null ? ((Number) line[1]).doubleValue() : 0.0;
+        this.noOfRatings = line[2] != null ? ((Number) line[2]).longValue() : 0;
     }
 
-    public BookDto(Book book, Double avg){
+    public BookDto(Book book, Number avg){
         this(book);
-        this.averageRating = avg != null ? avg : 0.0;
+        this.averageRating = avg != null ? avg.doubleValue() : 0.0;
     }
 }
