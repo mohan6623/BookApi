@@ -3,6 +3,7 @@ package com.marvel.springsecurity.repo;
 import com.marvel.springsecurity.model.Rating;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -16,5 +17,5 @@ public interface RatingRepo extends JpaRepository<Rating, Integer> {
 
 
     @Query("SELECT COALESCE(AVG(r.rating), 0), COALESCE(COUNT(r.rating), 0) FROM Rating r WHERE r.book.id = :bookId")
-    Number[] AverageAndCountByBookId(int bookId);
+    Object[] AverageAndCountByBookId(@Param("bookId") int bookId);
 }

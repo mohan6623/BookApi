@@ -89,7 +89,7 @@ public class BookController {
         return ResponseEntity.ok(ratings);
     }
 
-    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_USER')")
+//    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_USER')")
     @GetMapping("/book/{id}/comment")
     public ResponseEntity<Page<CommentsDto>> getComments(@PathVariable int id, @RequestParam int page, @RequestParam int size){
         Page<CommentsDto> comments = service.getComments(id, page, size);

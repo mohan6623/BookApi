@@ -49,8 +49,11 @@ public class BookService {
     public BookDto getBookById(int bookId) {
         Book book = bookRepo.findById(bookId).orElse(null);
         if(book == null) return null;
-        var rating = getAvgAndCountRating(bookId);
-        if(rating != null) return new BookDto(book, rating);
+        Object[] rating = getAvgAndCountRating(bookId);
+        if(rating != null) {
+            System.out.println(rating.length);
+            return new BookDto(book, rating);
+        }
         else {
             var dto = new BookDto(book);
             dto.setAverageRating(0.0);
@@ -62,10 +65,18 @@ public class BookService {
     public Page<BookDto> getBooks(int page, int size) {
         var pageable = PageRequest.of(page, size);
         Page<Object[]> data = bookRepo.findBooksWithRatings(pageable);
+        test();
         return data.map(BookDto::new);
     }
 
-    private Number[] getAvgAndCountRating(int bookId){
+    public void test(){
+        Object[] o = getAvgAndCountRating(17);
+        System.out.println(o.length);
+//        System.out.println(o.);
+//        System.out.println(o[1]);
+    }
+    private Object[] getAvgAndCountRating(int bookId){
+        System.out.println("bookId = " + bookId);
         return ratingRepo.AverageAndCountByBookId(bookId);
     }
 
@@ -100,7 +111,7 @@ public class BookService {
         var pageable = PageRequest.of(page, size);
         Page<Object[]> data = bookRepo.searchBooks(title, author, category, pageable);
         return data.map(line ->
-                new BookDto((Book) line[0],(Number) line[1]));
+                new BookDto((Book) line[0],(Double) line[1]));
     }
 
     public ResponseEntity<Void> addRating(int bookId, Rating rating) {

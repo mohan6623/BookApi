@@ -31,20 +31,20 @@ public class BookDto {
         this.imageBase64 = book.getImageBase64();
     }
 
-    public BookDto(Book book, Number[] obj){
+    public BookDto(Book book, Object[] obj){
         this(book);
-        this.averageRating =obj[0] != null ? (obj[0]).doubleValue() : 0.0;
-        this.noOfRatings = obj[1] != null ? (obj[1]).longValue() : 0;
+        this.averageRating = obj[0] != null ? (Double)obj[0] : 0.0;
+        this.noOfRatings = obj[1] != null ? (Long)obj[1] : 0;
     }
 
     public BookDto(Object[] line){
         this((Book)line[0]);
-        this.averageRating = line[1] != null ? ((Number) line[1]).doubleValue() : 0.0;
-        this.noOfRatings = line[2] != null ? ((Number) line[2]).longValue() : 0;
+        this.averageRating = line[1] != null ? (Double) line[1] : 0.0;
+        this.noOfRatings = line[2] != null ? (Long) line[2] : 0;
     }
 
-    public BookDto(Book book, Number avg){
+    public BookDto(Book book, Double avg){
         this(book);
-        this.averageRating = avg != null ? avg.doubleValue() : 0.0;
+        this.averageRating = avg != null ? avg : 0.0;
     }
 }

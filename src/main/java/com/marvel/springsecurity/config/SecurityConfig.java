@@ -39,21 +39,36 @@ public class SecurityConfig {
                 .cors(Customizer.withDefaults()) // Enable CORS support
                 // Disable CSRF (Cross-Site Request Forgery) protection for the application
                 .csrf(customize -> customize.disable())
-        // Return 401 without triggering browser basic-auth prompt
-//                .exceptionHandling(e -> e.authenticationEntryPoint((request, response, authException) -> {
-//                    response.setStatus(401);
-//        }))
+
+                // Return 401 without triggering browser basic-auth prompt
+                .exceptionHandling(e -> e.authenticationEntryPoint((request, response, authException) -> {
+                    response.setStatus(401);
+                }))
                 // Configure authorization for HTTP requests, setting all requests to be authenticated.
                 .authorizeHttpRequests(request -> request
-                        .requestMatchers("/register","/login","/bookid/").permitAll() // permit auth endpoints
-                        .requestMatchers(org.springframework.http.HttpMethod.OPTIONS, "/**").permitAll() // Allow OPTIONS for CORS preflight
-                        .anyRequest().authenticated() // will permit only after authenticate.
-                )
+                        // permit auth endpoints
+                        .requestMatchers("/register","/login").permitAll()
+                        // Allow OPTIONS for CORS preflight
+                        .requestMatchers(org.springframework.http.HttpMethod.OPTIONS, "/**").permitAll()
+                        // Public read endpoints
+                        .requestMatchers(org.springframework.http.HttpMethod.GET,
+                                "/books",
+                                "/bookid/**",
+                                "/books/search",
+                                "/book/*/ratings",
+                                "/book/*/comment"
+                        ).permitAll()
+                        // Everything else requires authentication
+                        .anyRequest().authenticated()
                 // Use basic HTTP authentication (username and password in HTTP headers)
-                .httpBasic(Customizer.withDefaults())
-                .oauth2Login(Customizer.withDefaults())
+//                .httpBasic(Customizer.withDefaults())
+//                .oauth2Login(Customizer.withDefaults())
+                )
                 // Configure session management to be stateless, meaning no session will be maintained
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                // Register authentication provider
+                .authenticationProvider(authProvider())
+                // Add JWT filter
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
