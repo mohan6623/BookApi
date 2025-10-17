@@ -14,6 +14,7 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
@@ -23,34 +24,50 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 public class SecurityConfig {
 
     @Autowired
-    UserDetailsService userDetailsService;
+    private UserDetailsService userDetailsService;
+
     @Autowired
-    JwtFilter jwtFilter;
+    private JwtFilter jwtFilter;
+
+    @Autowired
+    private OAuth2LoginSuccessHandler oAuth2LoginSuccessHandler;
+
+    @Bean
+    public PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder(12);
+    }
+
     @Bean
     public AuthenticationProvider authProvider(){
         DaoAuthenticationProvider provider = new DaoAuthenticationProvider();
         provider.setUserDetailsService(userDetailsService);
-        provider.setPasswordEncoder(new BCryptPasswordEncoder(12));
+        provider.setPasswordEncoder(passwordEncoder());
         return provider;
     }
+
     @Bean
     public SecurityFilterChain security(HttpSecurity http) throws Exception {
         http
                 .cors(Customizer.withDefaults()) // Enable CORS support
-                // Disable CSRF (Cross-Site Request Forgery) protection for the application
+                // Disable CSRF for stateless API
                 .csrf(customize -> customize.disable())
 
                 // Return 401 without triggering browser basic-auth prompt
                 .exceptionHandling(e -> e.authenticationEntryPoint((request, response, authException) -> {
                     response.setStatus(401);
+                    response.setContentType("application/json");
+                    response.getWriter().write("{\"error\":\"Unauthorized\",\"message\":\"Authentication required\"}");
                 }))
-                // Configure authorization for HTTP requests, setting all requests to be authenticated.
+
+                // Configure authorization for HTTP requests
                 .authorizeHttpRequests(request -> request
-                        // permit auth endpoints
-                        .requestMatchers("/register","/login").permitAll()
+                        // Public auth endpoints
+                        .requestMatchers("/register", "/login", "/oauth2/**", "/login/oauth2/**").permitAll()
+
                         // Allow OPTIONS for CORS preflight
                         .requestMatchers(org.springframework.http.HttpMethod.OPTIONS, "/**").permitAll()
-                        // Public read endpoints
+
+                        // Public read endpoints (browsing without login)
                         .requestMatchers(org.springframework.http.HttpMethod.GET,
                                 "/books",
                                 "/bookid/**",
@@ -58,17 +75,26 @@ public class SecurityConfig {
                                 "/book/*/ratings",
                                 "/book/*/comment"
                         ).permitAll()
+
                         // Everything else requires authentication
                         .anyRequest().authenticated()
-                // Use basic HTTP authentication (username and password in HTTP headers)
-//                .httpBasic(Customizer.withDefaults())
-//                .oauth2Login(Customizer.withDefaults())
                 )
-                // Configure session management to be stateless, meaning no session will be maintained
+
+                // OAuth2 Login configuration
+                .oauth2Login(oauth2 -> oauth2
+                        .loginPage("/login")
+                        .defaultSuccessUrl("/oauth2/success", true)
+                        .successHandler(oAuth2LoginSuccessHandler)
+                        .failureUrl("/login?error=true")
+                )
+
+                // Configure session management to be stateless
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+
                 // Register authentication provider
                 .authenticationProvider(authProvider())
-                // Add JWT filter
+
+                // Add JWT filter before UsernamePasswordAuthenticationFilter
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
@@ -78,62 +104,4 @@ public class SecurityConfig {
     public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
         return config.getAuthenticationManager();
     }
-
-    // Hard Coded values
-//    @Bean
-//    public UserDetailsService user(){
-//
-//        UserDetails user = User
-//                .withDefaultPasswordEncoder()
-//                .username("Mohan")
-//                .password("6623")
-//                .roles("USER")
-//                .build();
-//
-//        UserDetails user2 = User.withDefaultPasswordEncoder()
-//                .username("Marvel")
-//                .password("2623")
-//                .roles("ADMIN")
-//                .build();
-//        return new InMemoryUserDetailsManager(user, user2);
-//    }
-
 }
-
-
-
-
-
-
-
-//public SecurityFilterChain security(HttpSecurity http) throws Exception {
-//    // Disable CSRF (Cross-Site Request Forgery) protection for the application
-//    http.csrf(new Customizer<CsrfConfigurer<HttpSecurity>>() {
-//        @Override
-//        public void customize(CsrfConfigurer<HttpSecurity> csrf) {
-//            csrf.disable();
-//        }
-//    });
-//
-//    // Configure authorization for HTTP requests, requiring all requests to be authenticated
-//    http.authorizeHttpRequests(new Customizer<AuthorizeHttpRequestsConfigurer<HttpSecurity>.AuthorizationManagerRequestMatcherRegistry>() {
-//        @Override
-//        public void customize(AuthorizeHttpRequestsConfigurer<HttpSecurity>.AuthorizationManagerRequestMatcherRegistry registry) {
-//            registry.anyRequest().authenticated();
-//        }
-//    });
-//
-//    // Use basic HTTP authentication (username and password in HTTP headers)
-//    http.httpBasic(Customizer.withDefaults());
-//
-//    // Configure session management to be stateless, meaning no session will be maintained
-//    http.sessionManagement(new Customizer<SessionManagementConfigurer<HttpSecurity>>() {
-//        @Override
-//        public void customize(SessionManagementConfigurer<HttpSecurity> sessionManagement) {
-//            sessionManagement.sessionCreationPolicy(SessionCreationPolicy.STATELESS);
-//        }
-//    });
-//
-//    // Build and return the configured SecurityFilterChain object
-//    return http.build();
-//}

@@ -1,6 +1,7 @@
 package com.marvel.springsecurity.service.book;
 
 
+import com.marvel.springsecurity.dto.AvgAndCountProjection;
 import com.marvel.springsecurity.dto.BookDto;
 import com.marvel.springsecurity.dto.CommentsDto;
 import com.marvel.springsecurity.model.Book;
@@ -14,11 +15,13 @@ import com.marvel.springsecurity.repo.UserRepository;
 import com.marvel.springsecurity.service.security.UserPrincipal;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -31,11 +34,13 @@ public class BookService {
     private final BookRepo bookRepo;
     private final RatingRepo ratingRepo;
     private final CommentRepo commentRepo;
+    private final UserRepository userRepo;
 
     public BookService(BookRepo bookRepo, RatingRepo ratingRepo, CommentRepo commentRepo, UserRepository userRepo) {
         this.bookRepo = bookRepo;
         this.ratingRepo = ratingRepo;
         this.commentRepo = commentRepo;
+        this.userRepo = userRepo;
     }
 
     public void addBook(Book book, MultipartFile image) throws IOException {
@@ -49,17 +54,17 @@ public class BookService {
     public BookDto getBookById(int bookId) {
         Book book = bookRepo.findById(bookId).orElse(null);
         if(book == null) return null;
-        Object[] rating = getAvgAndCountRating(bookId);
-        if(rating != null) {
-            System.out.println(rating.length);
+        AvgAndCountProjection rating = getAvgAndCountRating(bookId);
+//        if(rating != null) {
+            System.out.println(rating.getAverage()+" "+rating.getCount());
             return new BookDto(book, rating);
-        }
-        else {
-            var dto = new BookDto(book);
-            dto.setAverageRating(0.0);
-            dto.setNoOfRatings(0);
-            return dto;
-        }
+//        }
+//        else {
+//            var dto = new BookDto(book);
+//            dto.setAverageRating(0.0);
+//            dto.setNoOfRatings(0);
+//            return dto;
+//        }
     }
 
     public Page<BookDto> getBooks(int page, int size) {
@@ -70,12 +75,13 @@ public class BookService {
     }
 
     public void test(){
-        Object[] o = getAvgAndCountRating(17);
-        System.out.println(o.length);
+        AvgAndCountProjection o = getAvgAndCountRating(17);
+        System.out.println(o.getAverage());
+        System.out.println(o.getCount());
 //        System.out.println(o.);
 //        System.out.println(o[1]);
     }
-    private Object[] getAvgAndCountRating(int bookId){
+    private AvgAndCountProjection getAvgAndCountRating(int bookId){
         System.out.println("bookId = " + bookId);
         return ratingRepo.AverageAndCountByBookId(bookId);
     }
@@ -115,11 +121,25 @@ public class BookService {
     }
 
     public ResponseEntity<Void> addRating(int bookId, Rating rating) {
-        if (getUserId() == -1) return ResponseEntity.status(401).build();
+        int userId = getUserId();
+        if (userId == -1) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User not authenticated");
+        }
+
+        // Check if book exists
+        if (!bookRepo.existsById(bookId)) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Book not found");
+        }
+
+        // Validate rating value
+        if (rating.getRating() < 1 || rating.getRating() > 5) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Rating must be between 1 and 5");
+        }
+
         Book book = new Book();
         book.setId(bookId);
         User user = new User();
-        user.setId(getUserId());
+        user.setId(userId);
         rating.setUser(user);
         rating.setBook(book);
         ratingRepo.save(rating);
@@ -153,7 +173,26 @@ public class BookService {
 
 
     public Comment addComment(int id, CommentsDto comment) {
-        return commentRepo.save(new Comment(comment, getUserId()));
+        int userId = getUserId();
+        if (userId == -1) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User not authenticated");
+        }
+
+        // Check if book exists
+        if (!bookRepo.existsById(id)) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Book not found");
+        }
+
+        // Validate comment content
+        if (comment.getComment() == null || comment.getComment().trim().isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Comment cannot be empty");
+        }
+
+        if (comment.getComment().length() > 1000) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Comment too long (max 1000 characters)");
+        }
+
+        return commentRepo.save(new Comment(comment, userId));
     }
 
     public Page<CommentsDto> getComments(int id, int page, int size) {
@@ -172,10 +211,52 @@ public class BookService {
     }
 
     public Comment updateComment(CommentsDto comment) {
-        return commentRepo.save(new Comment(comment, getUserId()));
+        int userId = getUserId();
+        if (userId == -1) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User not authenticated");
+        }
+
+        // Fetch existing comment and verify ownership
+        Comment existingComment = commentRepo.findById(comment.getId())
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Comment not found"));
+
+        if (existingComment.getUser().getId() != userId) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You don't have permission to edit this comment");
+        }
+
+        // Validate comment content
+        if (comment.getComment() == null || comment.getComment().trim().isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Comment cannot be empty");
+        }
+
+        if (comment.getComment().length() > 1000) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Comment too long (max 1000 characters)");
+        }
+
+        // Update only the comment text, preserve other fields
+        existingComment.setComment(comment.getComment());
+        return commentRepo.save(existingComment);
     }
 
     public void deleteComment(int id) {
+        int userId = getUserId();
+        if (userId == -1) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User not authenticated");
+        }
+
+        // Fetch comment and verify ownership
+        Comment comment = commentRepo.findById(id)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Comment not found"));
+
+        // Allow deletion if user is the owner or has ADMIN role
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        boolean isAdmin = auth.getAuthorities().stream()
+            .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+
+        if (comment.getUser().getId() != userId && !isAdmin) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You don't have permission to delete this comment");
+        }
+
         commentRepo.deleteById(id);
     }
 

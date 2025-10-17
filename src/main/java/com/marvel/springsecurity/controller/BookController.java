@@ -101,9 +101,7 @@ public class BookController {
     @PostMapping("/book/{id}/comment")
     public ResponseEntity<CommentsDto> addComment(@PathVariable int id,@RequestBody CommentsDto comment){
         if(comment == null) return ResponseEntity.status(406).build();
-        if (service.getUserId() == -1) return ResponseEntity.status(401).build();
         var newComment = service.addComment(id,comment);
-        if (newComment == null) return ResponseEntity.internalServerError().build();
         return ResponseEntity.ok(new CommentsDto(newComment));
     }
 
@@ -111,9 +109,7 @@ public class BookController {
     @PutMapping("/book/{id}/comment")
     public ResponseEntity<CommentsDto> updateComment(@RequestBody(required = true) CommentsDto comment){
         if(comment == null) return ResponseEntity.status(406).build();
-        if (service.getUserId() == -1) return ResponseEntity.status(401).build();
         var updated = service.updateComment(comment);
-        if(updated == null) return ResponseEntity.internalServerError().build();
         return ResponseEntity.ok(new CommentsDto(updated));
     }
 

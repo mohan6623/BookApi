@@ -31,10 +31,10 @@ public class BookDto {
         this.imageBase64 = book.getImageBase64();
     }
 
-    public BookDto(Book book, Object[] obj){
+    public BookDto(Book book, AvgAndCountProjection obj){
         this(book);
-        this.averageRating = obj[0] != null ? (Double)obj[0] : 0.0;
-        this.noOfRatings = obj[1] != null ? (Long)obj[1] : 0;
+        this.averageRating = obj.getAverage();
+        this.noOfRatings =obj.getCount();
     }
 
     public BookDto(Object[] line){
