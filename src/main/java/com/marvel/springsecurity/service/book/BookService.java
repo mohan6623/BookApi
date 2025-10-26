@@ -20,6 +20,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -56,7 +57,7 @@ public class BookService {
         if(book == null) return null;
         AvgAndCountProjection rating = getAvgAndCountRating(bookId);
 //        if(rating != null) {
-            System.out.println(rating.getAverage()+" "+rating.getCount());
+//            System.out.println(rating.getAverage()+" "+rating.getCount());
             return new BookDto(book, rating);
 //        }
 //        else {
@@ -70,7 +71,7 @@ public class BookService {
     public Page<BookDto> getBooks(int page, int size) {
         var pageable = PageRequest.of(page, size);
         Page<Object[]> data = bookRepo.findBooksWithRatings(pageable);
-        test();
+//        test();
         return data.map(BookDto::new);
     }
 
@@ -82,14 +83,14 @@ public class BookService {
 //        System.out.println(o[1]);
     }
     private AvgAndCountProjection getAvgAndCountRating(int bookId){
-        System.out.println("bookId = " + bookId);
+//        System.out.println("bookId = " + bookId);
         return ratingRepo.AverageAndCountByBookId(bookId);
     }
 
     public boolean updateBook(int id, Book book, MultipartFile image) throws IOException {
         var existing = bookRepo.findById(id);
         if(existing.isEmpty()) {
-            System.out.println("Book not found with id: " + id);
+//            System.out.println("Book not found with id: " + id);
             return false;
         }
         existing.get().setTitle(book.getTitle());
@@ -106,6 +107,7 @@ public class BookService {
         return true;
     }
 
+    @Transactional
     public void deleteBook(int id) {
         commentRepo.deleteAllByBookId(id);
         ratingRepo.deleteAllByBookId(id);
@@ -122,26 +124,31 @@ public class BookService {
 
     public ResponseEntity<Void> addRating(int bookId, Rating rating) {
         int userId = getUserId();
+        System.out.println(userId);
         if (userId == -1) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User not authenticated");
         }
-
         // Check if book exists
         if (!bookRepo.existsById(bookId)) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Book not found");
         }
-
         // Validate rating value
         if (rating.getRating() < 1 || rating.getRating() > 5) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Rating must be between 1 and 5");
         }
+        var oldRating = ratingRepo.findByUserIdAndBookId(userId, bookId);
+        if(oldRating != null){
+            oldRating.setRating(rating.getRating());
+            ratingRepo.save(oldRating);
+            return ResponseEntity.ok().build();
+        }
+            Book book = new Book();
+            book.setId(bookId);
+            User user = new User();
+            user.setId(userId);
+            rating.setUser(user);
+            rating.setBook(book);
 
-        Book book = new Book();
-        book.setId(bookId);
-        User user = new User();
-        user.setId(userId);
-        rating.setUser(user);
-        rating.setBook(book);
         ratingRepo.save(rating);
         return ResponseEntity.ok().build();
     }

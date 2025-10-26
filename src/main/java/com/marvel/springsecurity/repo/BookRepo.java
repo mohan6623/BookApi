@@ -34,4 +34,5 @@ public interface BookRepo extends JpaRepository<Book, Integer> {
     Page<Object[]> findBooksWithRatings(Pageable pageable);
 
 
+    
 }

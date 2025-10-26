@@ -19,4 +19,7 @@ public interface RatingRepo extends JpaRepository<Rating, Integer> {
 
     @Query("SELECT COALESCE(AVG(r.rating), 0) AS average, COALESCE(COUNT(r.rating), 0) As count FROM Rating r WHERE r.book.id = :bookId")
     AvgAndCountProjection AverageAndCountByBookId(@Param("bookId") int bookId);
+
+    //add findByUserIdAndBookId
+    Rating findByUserIdAndBookId(int userId, int bookId);
 }

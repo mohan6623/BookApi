@@ -1,6 +1,8 @@
 package com.marvel.springsecurity.config;
 
 import com.marvel.springsecurity.service.security.JwtService;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.userdetails.UserDetails;
 import com.marvel.springsecurity.service.security.RoleVersionService;
 import io.jsonwebtoken.Claims;
 import jakarta.servlet.FilterChain;
@@ -27,6 +29,9 @@ public class JwtFilter extends OncePerRequestFilter {
 
     @Autowired
     private RoleVersionService roleVersionService;
+
+    @Autowired
+    private UserDetailsService userDetailsService;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
@@ -56,11 +61,21 @@ public class JwtFilter extends OncePerRequestFilter {
                         role = "ROLE_" + role;
                     }
 
-                    List<GrantedAuthority> authorities = List.of(new SimpleGrantedAuthority(role));
-                    UsernamePasswordAuthenticationToken authToken =
-                            new UsernamePasswordAuthenticationToken(username, null, authorities);
-                    authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                    SecurityContextHolder.getContext().setAuthentication(authToken);
+            // Load full UserDetails (UserPrincipal) so downstream code can access userId
+            try {
+            UserDetails userDetails = userDetailsService.loadUserByUsername(username);
+            UsernamePasswordAuthenticationToken authToken =
+                new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
+            authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+            SecurityContextHolder.getContext().setAuthentication(authToken);
+            } catch (Exception e) {
+            // Fallback to username-based auth if user details cannot be loaded
+            List<GrantedAuthority> authorities = List.of(new SimpleGrantedAuthority(role));
+            UsernamePasswordAuthenticationToken authToken =
+                new UsernamePasswordAuthenticationToken(username, null, authorities);
+            authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+            SecurityContextHolder.getContext().setAuthentication(authToken);
+            }
                 }
             } catch (io.jsonwebtoken.ExpiredJwtException e) {
                 // Token expired - log and continue without auth

@@ -12,5 +12,7 @@ public interface CommentRepo extends JpaRepository<Comment, Integer> {
     Page<Comment> findAllByBookId(int id, Pageable pageable);
 
     void deleteAllByBookId(int id);
+
+    void deleteByUserId(int id);
 }
 
