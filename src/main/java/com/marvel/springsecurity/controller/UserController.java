@@ -29,16 +29,36 @@ public class UserController {
 //JWT
     @PostMapping("register")
     public ResponseEntity<Void> register(@RequestBody User user){
-        if (!service.saveUser(user)) return ResponseEntity.internalServerError().build();
-                                   //Created
-        return ResponseEntity.status(201).build();
+        System.out.println(user);
+                                                                                                 //409
+        if(!service.usernameAndMailAvailable(user.getUsername(), user.getMail())) return ResponseEntity.status(HttpStatus.CONFLICT).build();
+        if(!service.saveUser(user)) return ResponseEntity.internalServerError().build();
+                                                //201
+        return ResponseEntity.status(HttpStatus.CREATED).build();
+    }
+
+    @GetMapping("available/username")
+    public ResponseEntity<Void> usernameAvailable(@RequestParam String username){
+        if(username == null || username.isBlank()) return ResponseEntity.badRequest().build();
+        boolean check = service.usernameAvailable(username);
+        if(check) return ResponseEntity.ok().build();
+                                                    //409
+        else return ResponseEntity.status(HttpStatus.CONFLICT).build();
+    }
+
+    @GetMapping("available/mail")
+    public ResponseEntity<Void> mailAvailable(@RequestParam String mail){
+        boolean check = service.mailAvailable(mail);
+        System.out.println("available : "+ check);
+                                                                                    //409
+        return check ? ResponseEntity.ok().build() : ResponseEntity.status(HttpStatus.CONFLICT).build();
     }
 
     @PostMapping("login")
     public ResponseEntity<JwtResponse> login(@RequestBody User user){
         JwtResponse jwt = service.login(user);
-                                                    //Forbidden
-        if (jwt == null) return ResponseEntity.status(403).build();
+                                                                 //403
+        if (jwt == null) return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         return ResponseEntity.accepted().body(jwt);
     }
 
@@ -47,14 +67,12 @@ public class UserController {
     public ResponseEntity<Void> updateUser(@PathVariable("user_id") int id, @RequestPart User user, @RequestPart(required = false) MultipartFile imageFile){
         boolean updated = false;
         try {
-            System.out.println(user);
             updated = service.updateUser(id, user, imageFile);
         } catch (IOException e) {
                                              //500
             ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to update User info " + e.getMessage());
         }
-        if (updated) return ResponseEntity.accepted().build();
-        else return ResponseEntity.notFound().build();
+        return updated ? ResponseEntity.accepted().build() : ResponseEntity.notFound().build();
     }
 
 //    @DeleteMapping("user/{user_id}")

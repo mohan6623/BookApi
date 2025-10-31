@@ -16,6 +16,7 @@ public class CommentsDto {
     private int bookId;
     private String username;
     private LocalDateTime createdAt;
+    private String profilePic;
 
     public CommentsDto(Comment newComment) {
         this.id = newComment.getId();
@@ -23,5 +24,7 @@ public class CommentsDto {
         this.bookId = newComment.getBook().getId();
         this.username = newComment.getUser().getUsername();
         this.createdAt = newComment.getCreatedAt();
+        this.profilePic = newComment.getUser().getImageBase64();
+        System.out.println(profilePic);
     }
 }

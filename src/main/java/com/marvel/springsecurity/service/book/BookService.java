@@ -72,6 +72,8 @@ public class BookService {
         var pageable = PageRequest.of(page, size);
         Page<Object[]> data = bookRepo.findBooksWithRatings(pageable);
 //        test();
+        System.out.println("Page info - requestedPage: " + page + ", size: " + size + ", totalElements: " + data.getTotalElements() + ", totalPages: " + data.getTotalPages());
+
         return data.map(BookDto::new);
     }
 
@@ -116,10 +118,13 @@ public class BookService {
     }
 
     public Page<BookDto> searchBooks(String title, String author, String category, int page, int size) {
+        System.out.println("searching..."+ " : " +title+ " " + author + " "+ category);
         var pageable = PageRequest.of(page, size);
         Page<Object[]> data = bookRepo.searchBooks(title, author, category, pageable);
-        return data.map(line ->
-                new BookDto((Book) line[0],(Double) line[1]));
+        System.out.println("Page info - requestedPage: " + page + ", size: " + size + ", totalElements: " + data.getTotalElements() + ", totalPages: " + data.getTotalPages());
+//        return data.map(line ->
+//                new BookDto((Book) line[0],(Double) line[1]));
+        return data.map(BookDto::new);
     }
 
     public ResponseEntity<Void> addRating(int bookId, Rating rating) {
@@ -212,7 +217,8 @@ public class BookService {
                             c.getComment(),
                             c.getBook().getId(),
                             c.getUser().getUsername(),
-                            c.getCreatedAt()
+                            c.getCreatedAt(),
+                            c.getUser().getImageBase64()
                 ));
 
     }

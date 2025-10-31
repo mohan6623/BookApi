@@ -30,8 +30,13 @@ public class UserService {
     private final BCryptPasswordEncoder encoder= new BCryptPasswordEncoder(12);
 
     public Boolean saveUser(User user) {
+        try {
             user.setPassword(encoder.encode(user.getPassword()));
-            return userRepo.save(user) != null;
+            userRepo.save(user);
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
         }
 
     private static UserDto toDto(User u) {
@@ -39,7 +44,7 @@ public class UserService {
         if (displayRole != null && displayRole.startsWith("ROLE_")) {
             displayRole = displayRole.substring(5);
         }
-        return new UserDto(u.getId(), u.getUsername(), u.getMail(), displayRole);
+        return new UserDto(u.getId(), u.getUsername(), u.getMail(), displayRole, u.getImageBase64());
     }
 
     public JwtResponse login(User user) {
@@ -71,10 +76,21 @@ public class UserService {
             System.out.println("Image : "+ user.getPassword());
         }
         userRepo.save(updateUser);
-        System.out.println(userRepo.findById(id).get());
         return true;
     }
 
+    public boolean usernameAvailable(String username) {
+        return !userRepo.existsByUsername(username.toLowerCase());
+    }
+
+    public boolean mailAvailable(String mail) {
+        return !userRepo.existsByMail(mail.toLowerCase());
+    }
+
+    public boolean usernameAndMailAvailable(String username, String mail){
+        System.out.println("mail : " + mail);
+        return !userRepo.existsByUsernameOrMail(username.toLowerCase(), mail.toLowerCase());
+    }
 //    public void deleteUser(int id) {
 //        commentRepo.deleteByUserId(id);
 //        userRepo.deleteById(id);

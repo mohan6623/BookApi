@@ -62,7 +62,7 @@ public class SecurityConfig {
                 // Configure authorization for HTTP requests
                 .authorizeHttpRequests(request -> request
                         // Public auth endpoints
-                        .requestMatchers("/register", "/login", "/oauth2/**", "/login/oauth2/**").permitAll()
+                        .requestMatchers("/register", "available/**",  "/login", "/oauth2/**", "/login/oauth2/**").permitAll()
 
                         // Allow OPTIONS for CORS preflight
                         .requestMatchers(org.springframework.http.HttpMethod.OPTIONS, "/**").permitAll()
