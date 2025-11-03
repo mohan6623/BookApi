@@ -9,6 +9,9 @@ import org.springframework.data.web.config.EnableSpringDataWebSupport;
 public class SpringSecurityApplication {
 
     public static void main(String[] args) {
+        // Force TLS 1.2 for JDBC SSL handshakes (workaround for AEADBadTagException on some networks)
+        System.setProperty("jdk.tls.client.protocols", "TLSv1.2");
+        System.setProperty("https.protocols", "TLSv1.2");
         SpringApplication.run(SpringSecurityApplication.class, args);
     }
 

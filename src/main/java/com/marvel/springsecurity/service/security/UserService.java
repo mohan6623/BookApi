@@ -62,21 +62,23 @@ public class UserService {
         return new JwtResponse(token, toDto(dbUser));
     }
 
-    public boolean updateUser(int id, User user, MultipartFile imageFile) throws IOException {
+    public UserDto updateUser(int id, User user, MultipartFile imageFile) throws IOException {
         var old = userRepo.findById(id);
-        if (old.isEmpty()) return false;
+        if (old.isEmpty()) return null;
         User updateUser = old.get();
         if (user.getMail() != null) updateUser.setMail(user.getMail());
         if (user.getPassword() != null) updateUser.setPassword(encoder.encode(user.getPassword()));
         if (imageFile != null){
-            System.out.println("image is saving");
+//            System.out.println("image is saving");
             updateUser.setImageName(imageFile.getOriginalFilename());
             updateUser.setImageType(imageFile.getContentType());
             updateUser.setProfilePic(imageFile.getBytes());
-            System.out.println("Image : "+ user.getPassword());
+//            System.out.println("Image Name: " + updateUser.getImageName());
+//            System.out.println("Image Type: " + updateUser.getImageType());
+//            System.out.println("Image Size: " + (updateUser.getProfilePic() != null ? updateUser.getProfilePic().length : 0) + " bytes");
         }
-        userRepo.save(updateUser);
-        return true;
+
+        return toDto(userRepo.save(updateUser));
     }
 
     public boolean usernameAvailable(String username) {
@@ -88,7 +90,6 @@ public class UserService {
     }
 
     public boolean usernameAndMailAvailable(String username, String mail){
-        System.out.println("mail : " + mail);
         return !userRepo.existsByUsernameOrMail(username.toLowerCase(), mail.toLowerCase());
     }
 //    public void deleteUser(int id) {

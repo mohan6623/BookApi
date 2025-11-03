@@ -16,7 +16,7 @@ import java.io.IOException;
 import java.util.Map;
 
 @RestController
-//@RequestMapping("/api")
+@RequestMapping("/api")
 public class BookController {
 
     private final BookService service;

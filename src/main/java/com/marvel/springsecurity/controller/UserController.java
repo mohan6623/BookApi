@@ -2,6 +2,7 @@ package com.marvel.springsecurity.controller;
 
 
 import com.marvel.springsecurity.dto.JwtResponse;
+import com.marvel.springsecurity.dto.UserDto;
 import com.marvel.springsecurity.model.User;
 import com.marvel.springsecurity.service.security.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,9 +30,9 @@ public class UserController {
 //JWT
     @PostMapping("register")
     public ResponseEntity<Void> register(@RequestBody User user){
-        System.out.println(user);
+//        System.out.println(user);
                                                                                                  //409
-        if(!service.usernameAndMailAvailable(user.getUsername(), user.getMail())) return ResponseEntity.status(HttpStatus.CONFLICT).build();
+//        if(!service.usernameAndMailAvailable(user.getUsername(), user.getMail())) return ResponseEntity.status(HttpStatus.CONFLICT).build();
         if(!service.saveUser(user)) return ResponseEntity.internalServerError().build();
                                                 //201
         return ResponseEntity.status(HttpStatus.CREATED).build();
@@ -49,7 +50,6 @@ public class UserController {
     @GetMapping("available/mail")
     public ResponseEntity<Void> mailAvailable(@RequestParam String mail){
         boolean check = service.mailAvailable(mail);
-        System.out.println("available : "+ check);
                                                                                     //409
         return check ? ResponseEntity.ok().build() : ResponseEntity.status(HttpStatus.CONFLICT).build();
     }
@@ -64,16 +64,21 @@ public class UserController {
 
     @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_USER')")
     @PutMapping("user/{user_id}")
-    public ResponseEntity<Void> updateUser(@PathVariable("user_id") int id, @RequestPart User user, @RequestPart(required = false) MultipartFile imageFile){
-        boolean updated = false;
+    public ResponseEntity<UserDto> updateUser(@PathVariable("user_id") int id,
+                                              @RequestPart User user,
+                                              @RequestPart(required = false) MultipartFile imageFile){
         try {
-            updated = service.updateUser(id, user, imageFile);
+            UserDto updated = service.updateUser(id, user, imageFile);
+            return updated != null                    //202
+                    ? ResponseEntity.status(HttpStatus.ACCEPTED).body(updated)
+                    : ResponseEntity.notFound().build();
         } catch (IOException e) {
                                              //500
-            ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to update User info " + e.getMessage());
+           return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
-        return updated ? ResponseEntity.accepted().build() : ResponseEntity.notFound().build();
     }
+
+
 
 //    @DeleteMapping("user/{user_id}")
 //    public ResponseEntity<Void> deleteUser(@PathVariable("user_id") int id){

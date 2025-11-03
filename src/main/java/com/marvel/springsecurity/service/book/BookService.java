@@ -56,43 +56,23 @@ public class BookService {
         Book book = bookRepo.findById(bookId).orElse(null);
         if(book == null) return null;
         AvgAndCountProjection rating = getAvgAndCountRating(bookId);
-//        if(rating != null) {
-//            System.out.println(rating.getAverage()+" "+rating.getCount());
             return new BookDto(book, rating);
-//        }
-//        else {
-//            var dto = new BookDto(book);
-//            dto.setAverageRating(0.0);
-//            dto.setNoOfRatings(0);
-//            return dto;
-//        }
+
     }
 
     public Page<BookDto> getBooks(int page, int size) {
         var pageable = PageRequest.of(page, size);
         Page<Object[]> data = bookRepo.findBooksWithRatings(pageable);
-//        test();
-        System.out.println("Page info - requestedPage: " + page + ", size: " + size + ", totalElements: " + data.getTotalElements() + ", totalPages: " + data.getTotalPages());
-
         return data.map(BookDto::new);
     }
 
-    public void test(){
-        AvgAndCountProjection o = getAvgAndCountRating(17);
-        System.out.println(o.getAverage());
-        System.out.println(o.getCount());
-//        System.out.println(o.);
-//        System.out.println(o[1]);
-    }
     private AvgAndCountProjection getAvgAndCountRating(int bookId){
-//        System.out.println("bookId = " + bookId);
         return ratingRepo.AverageAndCountByBookId(bookId);
     }
 
     public boolean updateBook(int id, Book book, MultipartFile image) throws IOException {
         var existing = bookRepo.findById(id);
         if(existing.isEmpty()) {
-//            System.out.println("Book not found with id: " + id);
             return false;
         }
         existing.get().setTitle(book.getTitle());
@@ -118,18 +98,13 @@ public class BookService {
     }
 
     public Page<BookDto> searchBooks(String title, String author, String category, int page, int size) {
-        System.out.println("searching..."+ " : " +title+ " " + author + " "+ category);
         var pageable = PageRequest.of(page, size);
         Page<Object[]> data = bookRepo.searchBooks(title, author, category, pageable);
-        System.out.println("Page info - requestedPage: " + page + ", size: " + size + ", totalElements: " + data.getTotalElements() + ", totalPages: " + data.getTotalPages());
-//        return data.map(line ->
-//                new BookDto((Book) line[0],(Double) line[1]));
         return data.map(BookDto::new);
     }
 
     public ResponseEntity<Void> addRating(int bookId, Rating rating) {
         int userId = getUserId();
-        System.out.println(userId);
         if (userId == -1) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User not authenticated");
         }
