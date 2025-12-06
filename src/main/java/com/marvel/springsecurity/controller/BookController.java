@@ -72,7 +72,11 @@ public class BookController {
     @PreAuthorize("hasAuthority('ROLE_ADMIN')")
     @DeleteMapping("/book/{id}")
     public ResponseEntity<String> deleteBook(@PathVariable int id) {
-        service.deleteBook(id);
+        try {
+            service.deleteBook(id);
+        } catch (IOException e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
         return ResponseEntity.ok("Book deleted successfully");
     }
 
@@ -114,7 +118,7 @@ public class BookController {
     }
 
     @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_USER')")
-    @DeleteMapping("comment/{commentId}")
+    @DeleteMapping("/comment/{commentId}")
     public ResponseEntity<Void> deleteComment(@PathVariable int commentId){
         service.deleteComment(commentId);
         return ResponseEntity.ok().build();

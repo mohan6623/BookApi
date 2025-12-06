@@ -1,10 +1,23 @@
-HELP.md
-target/
-.mvn/wrapper/maven-wrapper.jar
-!**/src/main/**/target/
-!**/src/test/**/target/
+# === OS ===
+# macOS
+.DS_Store
 
-### STS ###
+# Windows
+Thumbs.db
+desktop.ini
+
+# === IDEs / Editors ===
+# IntelliJ / CLion / WebStorm
+.idea/
+*.iml
+*.iws
+*.ipr
+out/
+
+# VS Code
+.vscode/
+
+# Eclipse / STS
 .apt_generated
 .classpath
 .factorypath
@@ -13,21 +26,76 @@ target/
 .springBeans
 .sts4-cache
 
-### IntelliJ IDEA ###
-.idea
-*.iws
-*.iml
-*.ipr
-
-### NetBeans ###
+# NetBeans
 /nbproject/private/
 /nbbuild/
 /dist/
 /nbdist/
 /.nb-gradle/
+
+# Editor swap/temp
+*~
+*.swp
+
+# === Java / Build ===
+# Maven build output
+target/
+/target/
+
+# compiled class files
+*.class
+
+# packaged archives
+*.jar
+*.war
+*.ear
+
+# logs and crash reports
+*.log
+hs_err_pid*
+
+# Maven specific
+dependency-reduced-pom.xml
+release.properties
+pom.xml.tag
+pom.xml.next
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+
+# Maven wrapper
+.mvn/wrapper/maven-wrapper.jar
+.mvn/wrapper/*.sha512
+.mvn/wrapper/*.sha1
+
+# Local Maven repo
+.m2/repository/
+
+# === Gradle (if used) ===
 build/
+.gradle/
+
+# === Spring / runtime / secrets ===
+# Local environment files and secrets
+.env
+.env.*.local
+*.jks
+*.keystore
+*.p12
+secrets/
+secrets-*/
+
+# Application logs/temp files
+logs/
+*.pid
+
+# === Other ===
+# Documentation files
+*.md
+!README.md
+HELP.md
+
+# Gradle build
 !**/src/main/**/build/
 !**/src/test/**/build/
-
-### VS Code ###
-.vscode/
+!**/src/main/**/target/
+!**/src/test/**/target/

@@ -15,6 +15,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 
 @RestController
+@RequestMapping("/api")
 public class UserController {
 
     @Autowired
@@ -28,7 +29,7 @@ public class UserController {
 //    }
 
 //JWT
-    @PostMapping("register")
+    @PostMapping("/register")
     public ResponseEntity<Void> register(@RequestBody User user){
 //        System.out.println(user);
                                                                                                  //409
@@ -38,7 +39,7 @@ public class UserController {
         return ResponseEntity.status(HttpStatus.CREATED).build();
     }
 
-    @GetMapping("available/username")
+    @GetMapping("/available/username")
     public ResponseEntity<Void> usernameAvailable(@RequestParam String username){
         if(username == null || username.isBlank()) return ResponseEntity.badRequest().build();
         boolean check = service.usernameAvailable(username);
@@ -47,14 +48,14 @@ public class UserController {
         else return ResponseEntity.status(HttpStatus.CONFLICT).build();
     }
 
-    @GetMapping("available/mail")
+    @GetMapping("/available/mail")
     public ResponseEntity<Void> mailAvailable(@RequestParam String mail){
         boolean check = service.mailAvailable(mail);
                                                                                     //409
         return check ? ResponseEntity.ok().build() : ResponseEntity.status(HttpStatus.CONFLICT).build();
     }
 
-    @PostMapping("login")
+    @PostMapping("/login")
     public ResponseEntity<JwtResponse> login(@RequestBody User user){
         JwtResponse jwt = service.login(user);
                                                                  //403
@@ -63,7 +64,7 @@ public class UserController {
     }
 
     @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_USER')")
-    @PutMapping("user/{user_id}")
+    @PutMapping("/user/{user_id}")
     public ResponseEntity<UserDto> updateUser(@PathVariable("user_id") int id,
                                               @RequestPart User user,
                                               @RequestPart(required = false) MultipartFile imageFile){

@@ -1,6 +1,7 @@
 package com.marvel.springsecurity.service.book;
 
 
+import com.cloudinary.Cloudinary;
 import com.marvel.springsecurity.dto.AvgAndCountProjection;
 import com.marvel.springsecurity.dto.BookDto;
 import com.marvel.springsecurity.dto.CommentsDto;
@@ -36,19 +37,21 @@ public class BookService {
     private final RatingRepo ratingRepo;
     private final CommentRepo commentRepo;
     private final UserRepository userRepo;
+    private final ImageService imageService;
 
-    public BookService(BookRepo bookRepo, RatingRepo ratingRepo, CommentRepo commentRepo, UserRepository userRepo) {
+    public BookService(BookRepo bookRepo, RatingRepo ratingRepo, CommentRepo commentRepo, UserRepository userRepo, Cloudinary cloudinary, ImageService imageService) {
         this.bookRepo = bookRepo;
         this.ratingRepo = ratingRepo;
         this.commentRepo = commentRepo;
         this.userRepo = userRepo;
+        this.imageService = imageService;
     }
 
     public void addBook(Book book, MultipartFile image) throws IOException {
 
-        book.setImageName(image.getOriginalFilename());
-        book.setImage(image.getBytes());
-        book.setImageType(image.getContentType());
+        Map<String,Object> cloudinary = imageService.uploadImage(image, "books");
+        book.setImageUrl((String)cloudinary.get("secure_url"));
+        book.setImagePublicId((String)cloudinary.get("public_id"));
         bookRepo.save(book);
     }
 
@@ -75,24 +78,46 @@ public class BookService {
         if(existing.isEmpty()) {
             return false;
         }
-        existing.get().setTitle(book.getTitle());
-        existing.get().setAuthor(book.getAuthor());
-        existing.get().setDescription(book.getDescription());
-        existing.get().setCategory(book.getCategory());
+        Book existingBook = existing.get();
+        existingBook.setTitle(book.getTitle());
+        existingBook.setAuthor(book.getAuthor());
+        existingBook.setDescription(book.getDescription());
+        existingBook.setCategory(book.getCategory());
 
         if (image != null && !image.isEmpty()) {
-            existing.get().setImageName(image.getOriginalFilename());
-            existing.get().setImageType(image.getContentType());
-            existing.get().setImage(image.getBytes());
+            // Get the old public ID before it's overwritten
+            String oldPublicId = existingBook.getImagePublicId();
+
+            // Upload the new image
+            Map<String, Object> uploadResult = imageService.uploadImage(image, "books");
+            String newPublicId = (String) uploadResult.get("public_id");
+
+            // Update the book with the new image details
+            existingBook.setImageUrl((String)uploadResult.get("secure_url"));
+            existingBook.setImagePublicId(newPublicId);
+
+            // Save the book with the new image details
+            bookRepo.save(existingBook);
+
+            // Delete the old image from Cloudinary ONLY IF it's different from the new one
+            if (oldPublicId != null && !oldPublicId.equals(newPublicId)) {
+                imageService.deleteImage(oldPublicId);
+            }
+        } else {
+            // If no new image, just save the other updated fields
+            bookRepo.save(existingBook);
         }
-        bookRepo.save(existing.get());
         return true;
     }
 
     @Transactional
-    public void deleteBook(int id) {
+    public void deleteBook(int id) throws IOException {
         commentRepo.deleteAllByBookId(id);
         ratingRepo.deleteAllByBookId(id);
+        String public_id = bookRepo.findById(id).map(Book::getImagePublicId).orElse(null);
+        if(public_id != null && !public_id.isEmpty()){
+            imageService.deleteImage(public_id);
+        }
         bookRepo.deleteById(id);
 
     }
@@ -108,7 +133,7 @@ public class BookService {
         if (userId == -1) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User not authenticated");
         }
-        // Check if book exists
+        // Check if a book exists
         if (!bookRepo.existsById(bookId)) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Book not found");
         }
@@ -193,7 +218,7 @@ public class BookService {
                             c.getBook().getId(),
                             c.getUser().getUsername(),
                             c.getCreatedAt(),
-                            c.getUser().getImageBase64()
+                            c.getUser().getImageUrl()
                 ));
 
     }

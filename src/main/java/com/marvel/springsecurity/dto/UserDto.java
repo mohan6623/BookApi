@@ -12,6 +12,7 @@ public class UserDto {
     private String name;
     private String email;
     private String role;
-    private String imageBase64;
+    private String imagePublicId;
+    private String imageUrl;
 
 }

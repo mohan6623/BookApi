@@ -5,7 +5,7 @@ import com.marvel.springsecurity.dto.UserDto;
 import com.marvel.springsecurity.model.User;
 import com.marvel.springsecurity.repo.CommentRepo;
 import com.marvel.springsecurity.repo.UserRepository;
-import org.springframework.beans.factory.annotation.Autowired;
+import com.marvel.springsecurity.service.book.ImageService;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -14,20 +14,27 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.util.Map;
 
 @Service
 public class UserService {
 
-    @Autowired
-    private UserRepository userRepo;
-    @Autowired
-    private CommentRepo commentRepo;
-    @Autowired
-    private JwtService jwtService;
-    @Autowired
-    AuthenticationManager authenticationManager;
 
-    private final BCryptPasswordEncoder encoder= new BCryptPasswordEncoder(12);
+    private final UserRepository userRepo;
+    private final CommentRepo commentRepo;
+    private final JwtService jwtService;
+    private final AuthenticationManager authenticationManager;
+    private final ImageService imageService;
+
+    public UserService(UserRepository userRepo, CommentRepo commentRepo, JwtService jwtService, AuthenticationManager authenticationManager, ImageService imageService) {
+        this.userRepo = userRepo;
+        this.commentRepo = commentRepo;
+        this.jwtService = jwtService;
+        this.authenticationManager = authenticationManager;
+        this.imageService = imageService;
+    }
+
+    private final BCryptPasswordEncoder encoder = new BCryptPasswordEncoder(12);
 
     public Boolean saveUser(User user) {
         try {
@@ -37,19 +44,19 @@ public class UserService {
         } catch (Exception e) {
             return false;
         }
-        }
+    }
 
     private static UserDto toDto(User u) {
         String displayRole = u.getRole();
         if (displayRole != null && displayRole.startsWith("ROLE_")) {
             displayRole = displayRole.substring(5);
         }
-        return new UserDto(u.getId(), u.getUsername(), u.getMail(), displayRole, u.getImageBase64());
+        return new UserDto(u.getId(), u.getUsername(), u.getMail(), displayRole, u.getImagePublicId(), u.getImageUrl());
     }
 
     public JwtResponse login(User user) {
         Authentication authentication = authenticationManager
-                .authenticate(new UsernamePasswordAuthenticationToken(user.getUsername(),user.getPassword()));
+                .authenticate(new UsernamePasswordAuthenticationToken(user.getUsername(), user.getPassword()));
 
         // Fetch user details from DB
         User dbUser = userRepo.findByUsername(user.getUsername());
@@ -66,18 +73,14 @@ public class UserService {
         var old = userRepo.findById(id);
         if (old.isEmpty()) return null;
         User updateUser = old.get();
+        if(user.getUsername() != null) updateUser.setUsername(user.getUsername());
         if (user.getMail() != null) updateUser.setMail(user.getMail());
         if (user.getPassword() != null) updateUser.setPassword(encoder.encode(user.getPassword()));
-        if (imageFile != null){
-//            System.out.println("image is saving");
-            updateUser.setImageName(imageFile.getOriginalFilename());
-            updateUser.setImageType(imageFile.getContentType());
-            updateUser.setProfilePic(imageFile.getBytes());
-//            System.out.println("Image Name: " + updateUser.getImageName());
-//            System.out.println("Image Type: " + updateUser.getImageType());
-//            System.out.println("Image Size: " + (updateUser.getProfilePic() != null ? updateUser.getProfilePic().length : 0) + " bytes");
+        if (imageFile != null) {
+            Map<String, Object> imageInfo = imageService.uploadImage(imageFile, "profile");
+            updateUser.setImagePublicId((String) imageInfo.get("public_id"));
+            updateUser.setImageUrl((String) imageInfo.get("secure_url"));
         }
-
         return toDto(userRepo.save(updateUser));
     }
 
@@ -85,15 +88,11 @@ public class UserService {
         return !userRepo.existsByUsername(username.toLowerCase());
     }
 
-    public boolean mailAvailable(String mail) {
+    public boolean mailAvailable (String mail){
         return !userRepo.existsByMail(mail.toLowerCase());
     }
 
-    public boolean usernameAndMailAvailable(String username, String mail){
+    public boolean usernameAndMailAvailable (String username, String mail){
         return !userRepo.existsByUsernameOrMail(username.toLowerCase(), mail.toLowerCase());
     }
-//    public void deleteUser(int id) {
-//        commentRepo.deleteByUserId(id);
-//        userRepo.deleteById(id);
-//    }
 }

@@ -21,15 +21,7 @@ public class Book {
     private String description;
     private String author;
     private String category;
-    private String imageName;
-    private String imageType;
-    private byte[] image;
-
-    private transient String imageBase64;
-
-    public String getImageBase64() {
-//        System.out.println("imageBase64 : "+ java.util.Base64.getEncoder().encodeToString(image));
-        return image != null ? java.util.Base64.getEncoder().encodeToString(image) : null;
-    }
+    private String imageUrl;
+    private String imagePublicId;
 
 }

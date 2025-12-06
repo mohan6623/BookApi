@@ -14,9 +14,8 @@ public class BookDto {
     private String description;
     private String author;
     private String category;
-    private String imageName;
-    private String imageType;
-    private String imageBase64;
+    private String imageUrl;
+    private String imagePublicId;
     private double averageRating;
     private long noOfRatings;
 
@@ -26,9 +25,8 @@ public class BookDto {
         this.description = book.getDescription();
         this.author = book.getAuthor();
         this.category = book.getCategory();
-        this.imageName = book.getImageName();
-        this.imageType = book.getImageType();
-        this.imageBase64 = book.getImageBase64();
+        this.imageUrl = book.getImageUrl();
+        this.imagePublicId = book.getImagePublicId();
     }
 
     public BookDto(Book book, AvgAndCountProjection obj){

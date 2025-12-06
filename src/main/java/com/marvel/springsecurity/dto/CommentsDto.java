@@ -24,7 +24,7 @@ public class CommentsDto {
         this.bookId = newComment.getBook().getId();
         this.username = newComment.getUser().getUsername();
         this.createdAt = newComment.getCreatedAt();
-        this.profilePic = newComment.getUser().getImageBase64();
+        this.profilePic = newComment.getUser().getImageUrl();
         System.out.println(profilePic);
     }
 }

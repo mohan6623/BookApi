@@ -3,6 +3,7 @@ package com.marvel.springsecurity.config;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
@@ -61,19 +62,22 @@ public class SecurityConfig {
 
                 // Configure authorization for HTTP requests
                 .authorizeHttpRequests(request -> request
-                        // Public auth endpoints
-                        .requestMatchers("/register", "/available/**",  "/login", "/oauth2/**", "/login/oauth2/**").permitAll()
+                        // Public auth endpoints (with /api prefix)
+                        .requestMatchers("/api/register", "/api/available/**", "/api/login").permitAll()
+
+                        // Spring Security's default OAuth2 endpoints (at root level, NOT /api)
+                        .requestMatchers("/login/oauth2/code/**", "/oauth2/authorization/**").permitAll()
 
                         // Allow OPTIONS for CORS preflight
-                        .requestMatchers(org.springframework.http.HttpMethod.OPTIONS, "/**").permitAll()
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 
                         // Public read endpoints (browsing without login)
-                        .requestMatchers(org.springframework.http.HttpMethod.GET,
-                                "/books",
-                                "/bookid/**",
-                                "/books/search",
-                                "/book/*/ratings",
-                                "/book/*/comment"
+                        .requestMatchers(HttpMethod.GET,
+                                "/api/books",
+                                "/api/bookid/**",
+                                "/api/books/search",
+                                "/api/book/*/ratings",
+                                "/api/book/*/comment"
                         ).permitAll()
 
                         // Everything else requires authentication
@@ -82,9 +86,11 @@ public class SecurityConfig {
 
                 // OAuth2 Login configuration
                 .oauth2Login(oauth2 -> oauth2
+                        // OAuth2 login page (can be at root or /api, depending on your frontend)
                         .loginPage("/login")
-                        .defaultSuccessUrl("/oauth2/success", true)
+                        // Success handler will redirect to frontend with JWT token
                         .successHandler(oAuth2LoginSuccessHandler)
+                        // Failure handling
                         .failureUrl("/login?error=true")
                 )
 
