@@ -19,6 +19,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
+import com.marvel.springsecurity.service.security.CustomOAuth2UserService;
+
 @EnableMethodSecurity(prePostEnabled = true)
 @Configuration
 @EnableWebSecurity
@@ -32,6 +34,12 @@ public class SecurityConfig {
 
     @Autowired
     private OAuth2LoginSuccessHandler oAuth2LoginSuccessHandler;
+
+    @Autowired
+    private OAuth2LoginFailureHandler oAuth2LoginFailureHandler;
+
+    @Autowired
+    private CustomOAuth2UserService customOAuth2UserService;
 
     @Bean
     public PasswordEncoder passwordEncoder() {
@@ -88,14 +96,17 @@ public class SecurityConfig {
                 .oauth2Login(oauth2 -> oauth2
                         // OAuth2 login page (can be at root or /api, depending on your frontend)
                         .loginPage("/login")
+                        // Use custom user service to normalize/persist users
+                        .userInfoEndpoint(userInfo -> userInfo.userService(customOAuth2UserService))
                         // Success handler will redirect to frontend with JWT token
                         .successHandler(oAuth2LoginSuccessHandler)
-                        // Failure handling
-                        .failureUrl("/login?error=true")
+                        // Failure handling - redirect to frontend
+                        .failureHandler(oAuth2LoginFailureHandler)
                 )
 
-                // Configure session management to be stateless
-                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                // OAuth2 login needs a session to store the authorization request (state).
+                // Use IF_REQUIRED so JWT-protected APIs remain stateless while OAuth2 can function.
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
 
                 // Register authentication provider
                 .authenticationProvider(authProvider())

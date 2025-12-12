@@ -83,6 +83,9 @@ build/
 *.p12
 secrets/
 secrets-*/
+SECURITY_CHANGES_SUMMARY.md
+OAUTH2_SETUP.md
+backend_api_doc.json
 
 # Application logs/temp files
 logs/

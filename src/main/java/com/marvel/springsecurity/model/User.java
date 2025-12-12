@@ -4,6 +4,8 @@ import jakarta.persistence.*;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.Instant;
+
 
 @Entity
 @Data
@@ -13,18 +15,48 @@ public class User {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private int id;
+    private Integer id;
+
+    @Column(nullable = false, unique = true)
     private String username;
+
     private String password;
+
     private String role;
+
+
+    @Column(nullable = false , unique = true)
     private String mail;
+
+    @Column(nullable = false)
+    private String firstName;
+
+    private String lastName;
+
     private String imageUrl;
+
     private String imagePublicId;
 
     @Column(nullable = false, columnDefinition = "integer default 0")
-    private int roleVersion = 0;
+    private Integer roleVersion = 0;
 
-    public User(int id, String username, String password, String role, String mail, String imagePublicId,String imageUrl, int roleVersion) {
+    // OAuth2 provider information
+    // LOCAL = normal registration; GOOGLE / GITHUB = OAuth providers
+    @Column(nullable = false, length = 20)
+    private String provider = "LOCAL";
+
+    // ID from the OAuth provider (e.g., Google sub, GitHub id)
+    @Column(name = "provider_id")
+    private String providerId;
+
+    @Column(name = "email_verified", nullable = false, columnDefinition = "boolean default false")
+    private Boolean emailVerified = false;
+
+    private Instant createdAt;
+
+    private Instant updatedAt;
+
+    public User(Integer id, String username, String password, String role, String mail, String imagePublicId, String imageUrl, Integer roleVersion) {
         this.id = id;
         this.username = username.toLowerCase();
         this.password = password;
@@ -35,10 +67,22 @@ public class User {
         this.roleVersion = roleVersion;
     }
 
-    public void setUsername(String username){
-        this.username = username.toLowerCase();
+    public void setUsername(String username) {
+        this.username = username == null ? null : username.toLowerCase();
     }
-    public void setMail(String mail){
-        this.mail = mail.toLowerCase();
+
+    public void setMail(String mail) {
+        this.mail = mail == null ? null : mail.toLowerCase();
+    }
+
+    @PrePersist
+    protected void onCreate() {
+        this.createdAt = Instant.now();
+        this.updatedAt = this.createdAt;
+    }
+
+    @PreUpdate
+    protected void onUpdate() {
+        this.updatedAt = java.time.Instant.now();
     }
 }
