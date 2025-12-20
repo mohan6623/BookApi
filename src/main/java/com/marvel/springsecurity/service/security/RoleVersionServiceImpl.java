@@ -1,6 +1,6 @@
 package com.marvel.springsecurity.service.security;
 
-import com.marvel.springsecurity.model.User;
+import com.marvel.springsecurity.model.Users;
 import com.marvel.springsecurity.repo.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -17,7 +17,7 @@ public class RoleVersionServiceImpl implements RoleVersionService {
             return false;
         }
 
-        User user = userRepository.findByUsername(username);
+        Users user = userRepository.findByUsername(username);
         if (user == null) {
             return false;
         }

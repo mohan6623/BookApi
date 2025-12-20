@@ -21,7 +21,7 @@ public class CommentsDto {
     public CommentsDto(Comment newComment) {
         this.id = newComment.getId();
         this.comment = newComment.getComment();
-        this.bookId = newComment.getBook().getId();
+        this.bookId = newComment.getBook().getBookId();
         this.username = newComment.getUser().getUsername();
         this.createdAt = newComment.getCreatedAt();
         this.profilePic = newComment.getUser().getImageUrl();

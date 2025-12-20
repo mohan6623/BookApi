@@ -1,5 +1,6 @@
 package com.marvel.springsecurity.model;
 
+
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -7,15 +8,15 @@ import lombok.NoArgsConstructor;
 import java.time.Instant;
 
 
-@Entity
+//@Entity
 @Data
 @NoArgsConstructor
-@Table(name = "users")
+//@Table(name = "users")
 public class User {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Integer id;
+    private Integer userId;
 
     @Column(nullable = false, unique = true)
     private String username;
@@ -56,8 +57,8 @@ public class User {
 
     private Instant updatedAt;
 
-    public User(Integer id, String username, String password, String role, String mail, String imagePublicId, String imageUrl, Integer roleVersion) {
-        this.id = id;
+    public User(Integer userId, String username, String password, String role, String mail, String imagePublicId, String imageUrl, Integer roleVersion) {
+        this.userId = userId;
         this.username = username.toLowerCase();
         this.password = password;
         this.role = role;

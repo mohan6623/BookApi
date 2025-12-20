@@ -12,14 +12,14 @@ import java.util.List;
 @Repository
 public interface RatingRepo extends JpaRepository<Rating, Integer> {
 
-    List<Rating> findAllByBookId(int bookId);
+    List<Rating> findAllByBook_BookId(int bookId);
 
-    void deleteAllByBookId(int id);
+    void deleteAllByBook_BookId(int id);
 
 
-    @Query("SELECT COALESCE(AVG(r.rating), 0) AS average, COALESCE(COUNT(r.rating), 0) As count FROM Rating r WHERE r.book.id = :bookId")
+    @Query("SELECT COALESCE(AVG(r.rating), 0) AS average, COALESCE(COUNT(r.rating), 0) As count FROM Rating r WHERE r.book.bookId = :bookId")
     AvgAndCountProjection AverageAndCountByBookId(@Param("bookId") int bookId);
 
-    //add findByUserIdAndBookId
-    Rating findByUserIdAndBookId(int userId, int bookId);
+    //add findByUser_UserIdAndBook_BookId
+    Rating findByUser_UserIdAndBook_BookId(int userId, int bookId);
 }

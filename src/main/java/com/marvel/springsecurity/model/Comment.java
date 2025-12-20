@@ -29,7 +29,7 @@ public class Comment {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
-    private User user;
+    private Users user;
 
     @CreationTimestamp
     private LocalDateTime createdAt;
@@ -38,9 +38,9 @@ public class Comment {
         this.id = comment.getId();
         this.comment = comment.getComment();
         this.book = new Book();
-        this.user = new User();
-        this.book.setId(comment.getBookId());
-        this.user.setId(userId);
+        this.user = new Users();
+        this.book.setBookId(comment.getBookId());
+        this.user.setUserId(userId);
         this.createdAt = comment.getCreatedAt();
 
     }

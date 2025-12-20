@@ -1,6 +1,6 @@
 package com.marvel.springsecurity.config;
 
-import com.marvel.springsecurity.model.User;
+import com.marvel.springsecurity.model.Users;
 import com.marvel.springsecurity.repo.UserRepository;
 import com.marvel.springsecurity.service.security.JwtService;
 import jakarta.servlet.ServletException;
@@ -66,9 +66,9 @@ public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
         }
 
         if (userId == null && username != null) {
-            User user = userRepository.findByUsername(username);
+            Users user = userRepository.findByUsername(username);
             if (user != null) {
-                userId = user.getId();
+                userId = user.getUserId();
                 if (role == null) role = user.getRole();
             }
         }

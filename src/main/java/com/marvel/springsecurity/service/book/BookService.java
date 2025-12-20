@@ -8,7 +8,7 @@ import com.marvel.springsecurity.dto.CommentsDto;
 import com.marvel.springsecurity.model.Book;
 import com.marvel.springsecurity.model.Comment;
 import com.marvel.springsecurity.model.Rating;
-import com.marvel.springsecurity.model.User;
+import com.marvel.springsecurity.model.Users;
 import com.marvel.springsecurity.repo.BookRepo;
 import com.marvel.springsecurity.repo.CommentRepo;
 import com.marvel.springsecurity.repo.RatingRepo;
@@ -112,8 +112,8 @@ public class BookService {
 
     @Transactional
     public void deleteBook(int id) throws IOException {
-        commentRepo.deleteAllByBookId(id);
-        ratingRepo.deleteAllByBookId(id);
+        commentRepo.deleteAllByBook_BookId(id);
+        ratingRepo.deleteAllByBook_BookId(id);
         String public_id = bookRepo.findById(id).map(Book::getImagePublicId).orElse(null);
         if(public_id != null && !public_id.isEmpty()){
             imageService.deleteImage(public_id);
@@ -141,16 +141,16 @@ public class BookService {
         if (rating.getRating() < 1 || rating.getRating() > 5) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Rating must be between 1 and 5");
         }
-        var oldRating = ratingRepo.findByUserIdAndBookId(userId, bookId);
+        var oldRating = ratingRepo.findByUser_UserIdAndBook_BookId(userId, bookId);
         if(oldRating != null){
             oldRating.setRating(rating.getRating());
             ratingRepo.save(oldRating);
             return ResponseEntity.ok().build();
         }
             Book book = new Book();
-            book.setId(bookId);
-            User user = new User();
-            user.setId(userId);
+            book.setBookId(bookId);
+            Users user = new Users();
+            user.setUserId(userId);
             rating.setUser(user);
             rating.setBook(book);
 
@@ -159,7 +159,7 @@ public class BookService {
     }
 
     public Map<Integer, Integer> getRatings(int id) {
-        List<Rating> ratings = ratingRepo.findAllByBookId(id);
+        List<Rating> ratings = ratingRepo.findAllByBook_BookId(id);
         if (ratings.isEmpty()) return new HashMap<>();
         Map<Integer, Integer> ratingCount = new HashMap<>(Map.of(
                 1, 0,
@@ -209,13 +209,13 @@ public class BookService {
 
     public Page<CommentsDto> getComments(int id, int page, int size) {
         var pageable = PageRequest.of(page, size);
-        Page<Comment> comments = commentRepo.findAllByBookId(id, pageable);
+        Page<Comment> comments = commentRepo.findAllByBook_BookId(id, pageable);
 
         return comments.map(c ->
                         new CommentsDto(
                             c.getId(),
                             c.getComment(),
-                            c.getBook().getId(),
+                            c.getBook().getBookId(),
                             c.getUser().getUsername(),
                             c.getCreatedAt(),
                             c.getUser().getImageUrl()
@@ -233,7 +233,7 @@ public class BookService {
         Comment existingComment = commentRepo.findById(comment.getId())
             .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Comment not found"));
 
-        if (existingComment.getUser().getId() != userId) {
+        if (existingComment.getUser().getUserId() != userId) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You don't have permission to edit this comment");
         }
 
@@ -266,7 +266,7 @@ public class BookService {
         boolean isAdmin = auth.getAuthorities().stream()
             .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
 
-        if (comment.getUser().getId() != userId && !isAdmin) {
+        if (comment.getUser().getUserId() != userId && !isAdmin) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You don't have permission to delete this comment");
         }
 
@@ -280,8 +280,7 @@ public class BookService {
     }
     public int getUserId(){
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        if (auth != null && auth.getPrincipal() instanceof UserPrincipal) {
-            UserPrincipal userPrincipal = (UserPrincipal) auth.getPrincipal();
+        if (auth != null && auth.getPrincipal() instanceof UserPrincipal userPrincipal) {
             return userPrincipal.getUserId();
         }
         return -1;

@@ -20,7 +20,7 @@ public class BookDto {
     private long noOfRatings;
 
     public BookDto(Book book) {
-        this.id = book.getId();
+        this.id = book.getBookId();
         this.title = book.getTitle();
         this.description = book.getDescription();
         this.author = book.getAuthor();

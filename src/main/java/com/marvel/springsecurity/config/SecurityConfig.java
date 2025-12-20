@@ -19,8 +19,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
-import com.marvel.springsecurity.service.security.CustomOAuth2UserService;
-
 @EnableMethodSecurity(prePostEnabled = true)
 @Configuration
 @EnableWebSecurity
@@ -32,14 +30,7 @@ public class SecurityConfig {
     @Autowired
     private JwtFilter jwtFilter;
 
-    @Autowired
-    private OAuth2LoginSuccessHandler oAuth2LoginSuccessHandler;
 
-    @Autowired
-    private OAuth2LoginFailureHandler oAuth2LoginFailureHandler;
-
-    @Autowired
-    private CustomOAuth2UserService customOAuth2UserService;
 
     @Bean
     public PasswordEncoder passwordEncoder() {
@@ -73,8 +64,8 @@ public class SecurityConfig {
                         // Public auth endpoints (with /api prefix)
                         .requestMatchers("/api/register", "/api/available/**", "/api/login").permitAll()
 
-                        // Spring Security's default OAuth2 endpoints (at root level, NOT /api)
-                        .requestMatchers("/login/oauth2/code/**", "/oauth2/authorization/**").permitAll()
+                        // Manual OAuth callback endpoint
+                        .requestMatchers("/api/oauth/callback", "/api/oauth/health").permitAll()
 
                         // Allow OPTIONS for CORS preflight
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
@@ -92,21 +83,9 @@ public class SecurityConfig {
                         .anyRequest().authenticated()
                 )
 
-                // OAuth2 Login configuration
-                .oauth2Login(oauth2 -> oauth2
-                        // OAuth2 login page (can be at root or /api, depending on your frontend)
-                        .loginPage("/login")
-                        // Use custom user service to normalize/persist users
-                        .userInfoEndpoint(userInfo -> userInfo.userService(customOAuth2UserService))
-                        // Success handler will redirect to frontend with JWT token
-                        .successHandler(oAuth2LoginSuccessHandler)
-                        // Failure handling - redirect to frontend
-                        .failureHandler(oAuth2LoginFailureHandler)
-                )
-
-                // OAuth2 login needs a session to store the authorization request (state).
-                // Use IF_REQUIRED so JWT-protected APIs remain stateless while OAuth2 can function.
-                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
+                // Stateless session for REST API (no sessions, only JWT)
+                .sessionManagement(session ->
+                        session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 
                 // Register authentication provider
                 .authenticationProvider(authProvider())

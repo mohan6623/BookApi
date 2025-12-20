@@ -1,20 +1,19 @@
 package com.marvel.springsecurity.config;
 
 import com.marvel.springsecurity.service.security.JwtService;
-import org.springframework.lang.NonNull;
-import org.springframework.security.core.userdetails.UserDetailsService;
-import org.springframework.security.core.userdetails.UserDetails;
 import com.marvel.springsecurity.service.security.RoleVersionService;
 import io.jsonwebtoken.Claims;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.lang.NonNull;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
@@ -25,14 +24,15 @@ import java.util.List;
 @Component
 public class JwtFilter extends OncePerRequestFilter {
 
-    @Autowired
-    private JwtService jwtService;
+    private final JwtService jwtService;
+    private final RoleVersionService roleVersionService;
+    private final UserDetailsService userDetailsService;
 
-    @Autowired
-    private RoleVersionService roleVersionService;
-
-    @Autowired
-    private UserDetailsService userDetailsService;
+    public JwtFilter(JwtService jwtService, RoleVersionService roleVersionService, UserDetailsService userDetailsService) {
+        this.jwtService = jwtService;
+        this.roleVersionService = roleVersionService;
+        this.userDetailsService = userDetailsService;
+    }
 
     @Override
     protected void doFilterInternal(@NonNull HttpServletRequest request, @NonNull HttpServletResponse response, @NonNull FilterChain filterChain)

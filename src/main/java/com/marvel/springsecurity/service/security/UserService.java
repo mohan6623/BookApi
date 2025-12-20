@@ -2,7 +2,7 @@ package com.marvel.springsecurity.service.security;
 
 import com.marvel.springsecurity.dto.JwtResponse;
 import com.marvel.springsecurity.dto.UserDto;
-import com.marvel.springsecurity.model.User;
+import com.marvel.springsecurity.model.Users;
 import com.marvel.springsecurity.repo.CommentRepo;
 import com.marvel.springsecurity.repo.UserRepository;
 import com.marvel.springsecurity.service.book.ImageService;
@@ -21,14 +21,12 @@ public class UserService {
 
 
     private final UserRepository userRepo;
-    private final CommentRepo commentRepo;
     private final JwtService jwtService;
     private final AuthenticationManager authenticationManager;
     private final ImageService imageService;
 
     public UserService(UserRepository userRepo, CommentRepo commentRepo, JwtService jwtService, AuthenticationManager authenticationManager, ImageService imageService) {
         this.userRepo = userRepo;
-        this.commentRepo = commentRepo;
         this.jwtService = jwtService;
         this.authenticationManager = authenticationManager;
         this.imageService = imageService;
@@ -36,52 +34,58 @@ public class UserService {
 
     private final BCryptPasswordEncoder encoder = new BCryptPasswordEncoder(12);
 
-    public Boolean saveUser(User user) {
-        try {
+    public void saveUser(Users user) {
             user.setPassword(encoder.encode(user.getPassword()));
             userRepo.save(user);
-            return true;
-        } catch (Exception e) {
-            return false;
-        }
     }
 
-    private static UserDto toDto(User u) {
-        String displayRole = u.getRole();
-        if (displayRole != null && displayRole.startsWith("ROLE_")) {
-            displayRole = displayRole.substring(5);
-        }
-        return new UserDto(u.getId(), u.getUsername(), u.getMail(), displayRole, u.getImagePublicId(), u.getImageUrl());
-    }
 
-    public JwtResponse login(User user) {
+
+    public JwtResponse login(Users user) {
         Authentication authentication = authenticationManager
                 .authenticate(new UsernamePasswordAuthenticationToken(user.getUsername(), user.getPassword()));
 
         // Fetch user details from DB
-        User dbUser = userRepo.findByUsername(user.getUsername());
+        Users dbUser = userRepo.findByUsername(user.getUsername());
         String role = dbUser.getRole();
         if (role != null && !role.startsWith("ROLE_")) {
             role = "ROLE_" + role;
         }
         int roleVersion = dbUser.getRoleVersion();
-        String token = jwtService.generateToken(dbUser.getUsername(), role, roleVersion, dbUser.getId());
-        return new JwtResponse(token, toDto(dbUser));
+        String token = jwtService.generateToken(dbUser.getUsername(), role, roleVersion, dbUser.getUserId());
+
+        return JwtResponse.builder()
+                .token(token)
+                .user(dbUser.toDto())
+                .build();
     }
 
-    public UserDto updateUser(int id, User user, MultipartFile imageFile) throws IOException {
+    public UserDto updateUser(int id, Users user, MultipartFile imageFile) throws IOException {
         var old = userRepo.findById(id);
         if (old.isEmpty()) return null;
-        User updateUser = old.get();
+        Users updateUser = old.get();
         if(user.getUsername() != null) updateUser.setUsername(user.getUsername());
-        if (user.getMail() != null) updateUser.setMail(user.getMail());
+        if (user.getEmail() != null) updateUser.setEmail(user.getEmail());
         if (user.getPassword() != null) updateUser.setPassword(encoder.encode(user.getPassword()));
         if (imageFile != null) {
             Map<String, Object> imageInfo = imageService.uploadImage(imageFile, "profile");
             updateUser.setImagePublicId((String) imageInfo.get("public_id"));
             updateUser.setImageUrl((String) imageInfo.get("secure_url"));
         }
-        return toDto(userRepo.save(updateUser));
+        return userRepo.save(updateUser).toDto();
+    }
+
+
+    public JwtResponse saveVerifiedUser(Users user) {
+        user.setVerificationToken(null);
+        user.setEmailVerified(true);
+        Users savedUser = userRepo.save(user);
+        String token = jwtService.generateToken(user.getUsername(), user.getRole(), user.getRoleVersion(), user.getUserId());
+        return JwtResponse.builder()
+                .token(token)
+                .user(savedUser.toDto())
+                .build();
+
     }
 
     public boolean usernameAvailable(String username) {
@@ -89,10 +93,14 @@ public class UserService {
     }
 
     public boolean mailAvailable (String mail){
-        return !userRepo.existsByMail(mail.toLowerCase());
+        return !userRepo.existsByEmail(mail.toLowerCase());
+    }
+
+    public Users findByEmail(String email) {
+        return userRepo.findByEmail(email).orElse(null);
     }
 
     public boolean usernameAndMailAvailable (String username, String mail){
-        return !userRepo.existsByUsernameOrMail(username.toLowerCase(), mail.toLowerCase());
+        return !userRepo.existsByUsernameOrEmail(username.toLowerCase(), mail.toLowerCase());
     }
 }

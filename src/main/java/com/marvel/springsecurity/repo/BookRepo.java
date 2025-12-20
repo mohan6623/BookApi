@@ -22,7 +22,7 @@ public interface BookRepo extends JpaRepository<Book, Integer> {
     @Query("""
         SELECT b, COALESCE(AVG(r.rating), 0), COUNT(r.id)
         FROM Book b
-        LEFT JOIN Rating r On r.book.id = b.id
+        LEFT JOIN Rating r On r.book.bookId = b.bookId
         WHERE (:title IS NULL OR LOWER(b.title) LIKE LOWER(CONCAT('%', :title, '%')))
           OR (:author IS NULL OR LOWER(b.author) LIKE LOWER(CONCAT('%', :author, '%')))
           OR (:category IS NULL OR LOWER(b.category) LIKE LOWER(CONCAT('%', :category, '%')))
@@ -35,7 +35,7 @@ public interface BookRepo extends JpaRepository<Book, Integer> {
     @Query("""
             SELECT b, COALESCE(AVG(r.rating), 0), COUNT(r.id)
             FROM Book b
-            LEFT JOIN Rating r On r.book.id = b.id
+            LEFT JOIN Rating r On r.book.bookId = b.bookId
             GROUP BY b
             """)
     Page<Object[]> findBooksWithRatings(Pageable pageable);

@@ -9,10 +9,10 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface CommentRepo extends JpaRepository<Comment, Integer> {
 
-    Page<Comment> findAllByBookId(int id, Pageable pageable);
+    Page<Comment> findAllByBook_BookId(int id, Pageable pageable);
 
-    void deleteAllByBookId(int id);
+    void deleteAllByBook_BookId(int id);
 
-    void deleteByUserId(int id);
+    void deleteByUser_UserId(int id);
 }
 
