@@ -1,7 +1,6 @@
 package com.marvel.springsecurity.service.security;
 
 import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.JwtParser;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
@@ -28,12 +27,17 @@ public class JwtService {
     @Value("${jwt.refresh-expiration:604800000}") // 7 days default
     private long refreshExpiration;
 
+    // 24 hours for email verification tokens
+    private static final long EMAIL_VERIFICATION_EXPIRATION = 86400000;
+
     public String generateEmailToken(String email) {
         Map<String, Object> claims = new HashMap<>();
+        claims.put("type", "email_verification");
         return Jwts.builder()
+                .setClaims(claims)
                 .setSubject(email)
                 .setIssuedAt(new Date(System.currentTimeMillis()))
-                .setExpiration(new Date(System.currentTimeMillis() + jwtExpiration))
+                .setExpiration(new Date(System.currentTimeMillis() + EMAIL_VERIFICATION_EXPIRATION))
                 .signWith(getKey(), SignatureAlgorithm.HS256)
                 .compact();
     }
@@ -50,17 +54,8 @@ public class JwtService {
                 .compact();
     }
 
-    public String extractEmailFromResetToken(String token){
-        try {
-            Claims claims = extractAllClaims(token);
-            if(!"password_reset".equals(claims.get("type"))){
-                return null;
-            }
-            return claims.getSubject();
-        } catch (Exception e) {
-            return null; // Token expired or invalid
-        }
-    }
+
+
     public String generateToken(String username, String role) {
         Map<String, Object> claims = new HashMap<>();
         claims.put("role", role);
@@ -118,21 +113,33 @@ public class JwtService {
     }
 
     public String extractEmail(String token){
-        JwtParser jwtParser = Jwts.parserBuilder()
-                .setSigningKey(getKey())
-                .build();
-        return jwtParser.parseClaimsJws(token)
-                .getBody()
-                .getSubject();
+        try{
+            if(isTokenExpired(token)) return null;
+            Claims claims = extractAllClaims(token);
+            return claims.getSubject();
+        }catch(Exception e){
+            return null; // invalid token
+        }
+
     }
-    // Lightweight validation for stateless auth
-    public boolean validateToken(String token) {
+
+    public String extractEmailFromResetToken(String token){
         try {
-            return isTokenExpired(token);
+            Claims claims = extractAllClaims(token);
+            if(!"password_reset".equals(claims.get("type"))){
+                return null;
+            }
+            return claims.getSubject();
         } catch (Exception e) {
-            return false;
+            return null; // Token expired or invalid
         }
     }
+
+    // Lightweight validation for stateless auth
+    public boolean validateToken(String token) {
+        return !isTokenExpired(token);
+    }
+
 
     public boolean validateToken(String token, UserDetails userDetails) {
         final String userName = extractUserName(token);
@@ -140,7 +147,7 @@ public class JwtService {
     }
 
     private boolean isTokenExpired(String token) {
-        return !extractExpiration(token).before(new Date());
+        return extractExpiration(token).before(new Date());
     }
 
     private Date extractExpiration(String token) {

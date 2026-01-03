@@ -18,15 +18,16 @@ import java.util.List;
 @Table(name = "users")
 public class Users {
 
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Integer userId;
+    private int userId;
 
     @Column(nullable = false, length = 100)
     private String username;
     private String password;
 
-    @Column(nullable = false)
+//    @Column(nullable = false)
     private String name;
 
     private String imageUrl;
@@ -36,7 +37,7 @@ public class Users {
     private String email;
 
     @Column(nullable = false, columnDefinition = "boolean default false")
-    private Boolean emailVerified;
+    private boolean emailVerified;
 
     private String verificationToken;
 
@@ -67,13 +68,14 @@ public class Users {
     protected void onCreate(){
         this.createdAt = Instant.now();
         this.updatedAt = Instant.now();
+        if(this.role == null) this.role = "ROLE_USER";
+        if(this.roleVersion == null) this.roleVersion = 0;
     }
 
     @PreUpdate
     protected void onUpdate(){
         this.updatedAt = Instant.now();
     }
-
 
     public UserDto toDto() {
         return new UserDto(
@@ -88,6 +90,10 @@ public class Users {
                 this.imageUrl
         );
     }
+
+//    public boolean getEmailVerified() {
+//        return this.emailVerified;
+//    }
 }
 
 

@@ -7,6 +7,7 @@ import com.marvel.springsecurity.model.OAuthProvider;
 import com.marvel.springsecurity.model.Users;
 import com.marvel.springsecurity.repo.OAuthRepo;
 import com.marvel.springsecurity.repo.UserRepository;
+import com.marvel.springsecurity.service.security.EmailService;
 import com.marvel.springsecurity.service.security.JwtService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
@@ -31,6 +32,9 @@ public class GithubOAuthService {
 
     @Autowired
     private OAuthRepo oAuthRepo;
+
+    @Autowired
+    private EmailService emailService;
 
     /**
      * Exchange code for access_token, fetch user info, and create/update user
@@ -190,6 +194,14 @@ public class GithubOAuthService {
      */
     public JwtResponse findOrCreateAndGenerateToken(OAuthDto oAuth) {
         Users user = findOrCreate(oAuth);
+
+        // If email is not verified (user-provided email), send verification email
+        if (!user.isEmailVerified()) {
+            String verificationToken = jwtService.generateEmailToken(user.getEmail());
+            user.setVerificationToken(verificationToken);
+            userRepository.save(user);
+            emailService.sendVerificationEmail(user.getEmail(), verificationToken);
+        }
 
         // Generate JWT token
         String token = jwtService.generateToken(user.getUsername(), user.getRole());

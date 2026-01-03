@@ -16,7 +16,7 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
 
-import java.net.URL;
+import java.net.URI;
 import java.security.interfaces.RSAPublicKey;
 import java.util.Base64;
 
@@ -81,7 +81,7 @@ public class OAuthTokenExchangeService {
         DecodedJWT jwt = JWT.decode(idToken);
 
         // Get Google's public key to verify signature
-        JwkProvider provider = new UrlJwkProvider(new URL("https://www.googleapis.com/oauth2/v3/certs"));
+        JwkProvider provider = new UrlJwkProvider(new URI("https://www.googleapis.com/oauth2/v3/certs").toURL());
         Jwk jwk = provider.get(jwt.getKeyId());
         Algorithm algorithm = Algorithm.RSA256((RSAPublicKey) jwk.getPublicKey(), null);
 

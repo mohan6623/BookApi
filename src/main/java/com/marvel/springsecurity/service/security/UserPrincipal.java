@@ -1,6 +1,7 @@
 package com.marvel.springsecurity.service.security;
 
 import com.marvel.springsecurity.model.Users;
+import lombok.Getter;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -9,6 +10,7 @@ import java.util.Collection;
 import java.util.List;
 
 
+@Getter
 public class UserPrincipal implements UserDetails {
 
     Users user;
@@ -55,4 +57,5 @@ public class UserPrincipal implements UserDetails {
     public int getUserId(){
         return user.getUserId();
     }
+
 }

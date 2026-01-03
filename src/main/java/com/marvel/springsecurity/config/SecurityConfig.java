@@ -1,6 +1,5 @@
 package com.marvel.springsecurity.config;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -24,12 +23,17 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @EnableWebSecurity
 public class SecurityConfig {
 
-    @Autowired
-    private UserDetailsService userDetailsService;
+    private final UserDetailsService userDetailsService;
+    private final JwtFilter jwtFilter;
+    private final OAuth2LoginFailureHandler oAuth2LoginFailureHandler;
+    private final OAuth2LoginSuccessHandler oAuth2LoginSuccessHandler;
 
-    @Autowired
-    private JwtFilter jwtFilter;
-
+    public SecurityConfig(UserDetailsService userDetailsService, JwtFilter jwtFilter, OAuth2LoginFailureHandler oAuth2LoginFailureHandler, OAuth2LoginSuccessHandler oAuth2LoginSuccessHandler) {
+        this.userDetailsService = userDetailsService;
+        this.jwtFilter = jwtFilter;
+        this.oAuth2LoginFailureHandler = oAuth2LoginFailureHandler;
+        this.oAuth2LoginSuccessHandler = oAuth2LoginSuccessHandler;
+    }
 
 
     @Bean
@@ -62,10 +66,16 @@ public class SecurityConfig {
                 // Configure authorization for HTTP requests
                 .authorizeHttpRequests(request -> request
                         // Public auth endpoints (with /api prefix)
-                        .requestMatchers("/api/register", "/api/available/**", "/api/login").permitAll()
+                        .requestMatchers("/api/register",
+                                         "/api/login",
+                                         "/api/available/**",
+                                         "/api/forgot-password",
+                                         "/api/resend-verification"
+                                        )
+                        .permitAll()
 
                         // Manual OAuth callback endpoint
-                        .requestMatchers("/api/oauth/callback", "/api/oauth/health").permitAll()
+                        .requestMatchers("/api/oauth/callback", "/api/oauth/health", "/api/oauth/submit-email").permitAll()
 
                         // Allow OPTIONS for CORS preflight
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
@@ -78,6 +88,8 @@ public class SecurityConfig {
                                 "/api/book/*/ratings",
                                 "/api/book/*/comment"
                         ).permitAll()
+                        //email validation(reset password and email verification)
+                        .requestMatchers("/api/validate/**").permitAll()
 
                         // Everything else requires authentication
                         .anyRequest().authenticated()

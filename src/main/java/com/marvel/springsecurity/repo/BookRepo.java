@@ -36,7 +36,7 @@ public interface BookRepo extends JpaRepository<Book, Integer> {
             SELECT b, COALESCE(AVG(r.rating), 0), COUNT(r.id)
             FROM Book b
             LEFT JOIN Rating r On r.book.bookId = b.bookId
-            GROUP BY b
+            GROUP BY b.bookId, b.author, b.category, b.description, b.imagePublicId, b.imageUrl, b.title
             """)
     Page<Object[]> findBooksWithRatings(Pageable pageable);
 

@@ -2,14 +2,17 @@ package com.marvel.springsecurity.service.security;
 
 import com.marvel.springsecurity.model.Users;
 import com.marvel.springsecurity.repo.UserRepository;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 @Service
 public class RoleVersionServiceImpl implements RoleVersionService {
 
-    @Autowired
-    private UserRepository userRepository;
+
+    private final UserRepository userRepository;
+
+    public RoleVersionServiceImpl(UserRepository userRepository) {
+        this.userRepository = userRepository;
+    }
 
     @Override
     public boolean isTokenRoleVersionCurrent(String username, Integer tokenRoleVersion) {

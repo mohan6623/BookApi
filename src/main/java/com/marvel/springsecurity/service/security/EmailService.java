@@ -1,41 +1,84 @@
 package com.marvel.springsecurity.service.security;
 
 
+import com.marvel.springsecurity.dto.JwtResponse;
+import com.marvel.springsecurity.model.Users;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
-import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
+import org.springframework.web.util.UriComponentsBuilder;
 
+@Slf4j
 @Service
 public class EmailService {
 
     private final JavaMailSender mailSender;
+    private final JwtService jwtService;
+    private final UserService userService;
 
     @Value("${spring.mail.username}")
     private String from;
+    @Value("${app.frontend.url}")
+    private String frontend;
 
-    public EmailService(JavaMailSender mailSender) {
+    public EmailService(JavaMailSender mailSender, JwtService jwtService, UserService userService) {
         this.mailSender = mailSender;
+        this.jwtService = jwtService;
+        this.userService = userService;
     }
 
     public void sendVerificationEmail(String email, String token){
         String subject = "Email Verification";
-        String path = "/api/register/verify-email";
+        String path = frontend + "/verify-email";
         String body = "Please click the following link to verify your email: ";
         sendEmail(email, token, subject, path, body);
     }
 
-    private void sendResetPasswordEmail(String email, String token){
+    public void sendForgotPasswordEmail(String email, String token){
         String subject = "Password Reset Request";
-        String path = "/api/update/reset-password";
+        String path = frontend + "/forgot-password";
         String body = "Please click the following link to reset your password: ";
         sendEmail(email, token, subject, path, body);
 
     }
 
+    public JwtResponse validateEmailVerification(String token) {
+        System.out.println("[EmailService] Validating email verification token");
+        String email = jwtService.extractEmail(token);
+        if(email == null) {
+            System.out.println("[EmailService] Failed to extract email from token - token may be expired or invalid");
+            return null;
+        }
+        System.out.println("[EmailService] Extracted email: " + email);
+        Users existingUser = userService.findByEmail(email);
+        if(existingUser == null) {
+            System.out.println("[EmailService] User not found for email: " + email);
+            return null;
+        }
+        if(existingUser.getVerificationToken() == null) {
+            System.out.println("[EmailService] User has no verification token stored");
+            return null;
+        }
+        if(!token.equals(existingUser.getVerificationToken())){
+            System.out.println("[EmailService] Token mismatch - stored token differs from provided token");
+            return null;
+        }
+        System.out.println("[EmailService] Token valid, verifying user");
+        return userService.saveVerifiedUser(existingUser);
+    }
+
+    //for email password reset validate from email
+    public boolean validateForgotPasswordToken(String token) {
+        String email = jwtService.extractEmailFromResetToken(token);
+        if(email == null) return false;
+        Users validUser = userService.findByEmail(email);
+        return validUser != null && token.equals(validUser.getVerificationToken());
+
+    }
     // TODO: [MEDIUM TERM] Add method to send verification link expiry notification
     // public void sendVerificationExpiredEmail(String email)
     // Inform user that their verification link expired and provide resend option
@@ -61,9 +104,8 @@ public class EmailService {
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true);
 
-            String verificationLink = ServletUriComponentsBuilder
-                    .fromCurrentContextPath()
-                    .path(path)
+            String verificationLink = UriComponentsBuilder
+                    .fromUriString(path)
                     .queryParam("token", token)
                     .toUriString();
 
@@ -84,8 +126,15 @@ public class EmailService {
             helper.setText(content, true);
             mailSender.send(message);
         } catch (MessagingException e) {
-            System.err.println("Failed to send email " + e.getMessage());
+            log.warn("Failed to send email {}", e.getMessage());
         }
-
+        //TODO: handle email failer
+//        Log to proper logging system
+//        Return failure status to caller
+//        Add retry logic for transient failures
     }
+
+
+
+
 }

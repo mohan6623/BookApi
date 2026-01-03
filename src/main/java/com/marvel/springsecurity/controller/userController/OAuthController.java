@@ -81,6 +81,55 @@ public class OAuthController {
     }
 
     /**
+     * Submit email for GitHub OAuth when email is not provided by GitHub
+     * Frontend sends: { pendingToken: "...", email: "user@example.com" }
+     * Backend validates token, creates/finds user, returns JWT
+     */
+    @PostMapping("/submit-email")
+    public ResponseEntity<?> submitOAuthEmail(@RequestBody java.util.Map<String, String> request) {
+        try {
+            String pendingToken = request.get("pendingToken");
+            String email = request.get("email");
+
+            if (pendingToken == null || pendingToken.isBlank()) {
+                return ResponseEntity.badRequest().body("Pending token is required");
+            }
+
+            if (email == null || email.isBlank()) {
+                return ResponseEntity.badRequest().body("Email is required");
+            }
+
+            // Validate email format
+            if (!email.matches("^[A-Za-z0-9+_.-]+@(.+)$")) {
+                return ResponseEntity.badRequest().body("Invalid email format");
+            }
+
+            // Complete GitHub OAuth with the provided email
+            JwtResponse response = oAuth2UserService.completeGithubOAuthWithEmail(pendingToken, email.toLowerCase());
+            
+            return ResponseEntity.ok(response);
+
+        } catch (OAuth2AuthenticationException e) {
+            String message = e.getMessage();
+            
+            // Handle ACCOUNT_EXISTS case
+            if (message != null && message.startsWith("ACCOUNT_EXISTS:")) {
+                String errorMessage = message.substring("ACCOUNT_EXISTS:".length());
+                OAuthErrorResponse errorResponse = new OAuthErrorResponse();
+                errorResponse.setError("ACCOUNT_EXISTS");
+                errorResponse.setMessage(errorMessage);
+                return ResponseEntity.status(HttpStatus.CONFLICT).body(errorResponse);
+            }
+            
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(message);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Failed to complete OAuth: " + e.getMessage());
+        }
+    }
+
+    /**
      * Health check endpoint for OAuth service
      */
     @GetMapping("/health")
