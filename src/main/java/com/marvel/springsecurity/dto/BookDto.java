@@ -1,5 +1,6 @@
 package com.marvel.springsecurity.dto;
 
+import com.marvel.springsecurity.dto.projections.AvgAndCountProjection;
 import com.marvel.springsecurity.model.Book;
 import lombok.AllArgsConstructor;
 import lombok.Data;

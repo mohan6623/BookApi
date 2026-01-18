@@ -26,6 +26,9 @@ public class OAuthProvider {
     @Column(nullable = false, length = 20)
     private String provider;
 
+    @Column(length = 255)
+    private String oauthEmail; // Email from OAuth provider (may differ from user's account email)
+
     private Instant createdAt;
     private Instant updatedAt;
 
@@ -39,5 +42,8 @@ public class OAuthProvider {
     protected void onUpdate(){
         this.updatedAt = Instant.now();
     }
+
+
+
 
 }

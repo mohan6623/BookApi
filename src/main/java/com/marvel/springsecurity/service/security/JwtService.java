@@ -42,7 +42,7 @@ public class JwtService {
                 .compact();
     }
 
-    public String generatePasswordResetToken(String email){
+    public String generatePasswordResetToken(String email) {
         Map<String, Object> claim = new HashMap<>();
         claim.put("type", "password_reset");
         return Jwts.builder()
@@ -53,8 +53,6 @@ public class JwtService {
                 .signWith(getKey(), SignatureAlgorithm.HS256)
                 .compact();
     }
-
-
 
     public String generateToken(String username, String role) {
         Map<String, Object> claims = new HashMap<>();
@@ -68,10 +66,17 @@ public class JwtService {
     }
 
     public String generateToken(String username, String role, int roleVersion, int userId) {
+        return generateToken(username, role, roleVersion, userId, null);
+    }
+
+    public String generateToken(String username, String role, int roleVersion, int userId, String imageUrl) {
         Map<String, Object> claims = new HashMap<>();
         claims.put("role", role);
         claims.put("roleVersion", roleVersion);
         claims.put("userId", userId);
+        if (imageUrl != null) {
+            claims.put("imageUrl", imageUrl);
+        }
         return Jwts.builder()
                 .setClaims(claims)
                 .setSubject(username)
@@ -100,7 +105,6 @@ public class JwtService {
         return extractClaim(token, Claims::getSubject);
     }
 
-
     private <T> T extractClaim(String token, Function<Claims, T> claimResolver) {
         final Claims claims = extractAllClaims(token);
         return claimResolver.apply(claims);
@@ -112,21 +116,22 @@ public class JwtService {
                 .build().parseClaimsJws(token).getBody();
     }
 
-    public String extractEmail(String token){
-        try{
-            if(isTokenExpired(token)) return null;
+    public String extractEmail(String token) {
+        try {
+            if (isTokenExpired(token))
+                return null;
             Claims claims = extractAllClaims(token);
             return claims.getSubject();
-        }catch(Exception e){
+        } catch (Exception e) {
             return null; // invalid token
         }
 
     }
 
-    public String extractEmailFromResetToken(String token){
+    public String extractEmailFromResetToken(String token) {
         try {
             Claims claims = extractAllClaims(token);
-            if(!"password_reset".equals(claims.get("type"))){
+            if (!"password_reset".equals(claims.get("type"))) {
                 return null;
             }
             return claims.getSubject();
@@ -140,6 +145,37 @@ public class JwtService {
         return !isTokenExpired(token);
     }
 
+    /**
+     * Validate that a token is specifically a refresh token.
+     * Checks: (1) signature valid, (2) not expired, (3) type == "refresh"
+     */
+    public boolean validateRefreshToken(String token) {
+        try {
+            Claims claims = extractAllClaims(token);
+            if (!"refresh".equals(claims.get("type"))) {
+                return false; // Not a refresh token
+            }
+            return !isTokenExpired(token);
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    /**
+     * Extract username from a validated refresh token.
+     * Returns null if token is invalid or not a refresh token.
+     */
+    public String extractUsernameFromRefreshToken(String token) {
+        try {
+            Claims claims = extractAllClaims(token);
+            if (!"refresh".equals(claims.get("type"))) {
+                return null; // Not a refresh token
+            }
+            return claims.getSubject();
+        } catch (Exception e) {
+            return null;
+        }
+    }
 
     public boolean validateToken(String token, UserDetails userDetails) {
         final String userName = extractUserName(token);
@@ -165,7 +201,7 @@ public class JwtService {
         claims.put("name", name);
         claims.put("picture", picture);
         claims.put("provider", provider);
-        
+
         return Jwts.builder()
                 .setClaims(claims)
                 .setSubject("oauth_pending")
@@ -176,24 +212,76 @@ public class JwtService {
     }
 
     /**
+     * Generate temporary token for OAuth registration (new user with email, needs
+     * username/display name)
+     * Token expires in 30 minutes
+     */
+    public String generateOAuthRegistrationToken(String providerId, String name, String picture, String provider,
+            String email, String suggestedUsername) {
+        Map<String, Object> claims = new HashMap<>();
+        claims.put("type", "oauth_registration");
+        claims.put("providerId", providerId);
+        claims.put("name", name);
+        claims.put("picture", picture);
+        claims.put("provider", provider);
+        claims.put("email", email);
+        claims.put("suggestedUsername", suggestedUsername);
+
+        return Jwts.builder()
+                .setClaims(claims)
+                .setSubject("oauth_registration")
+                .setIssuedAt(new Date(System.currentTimeMillis()))
+                .setExpiration(new Date(System.currentTimeMillis() + 1800000)) // 30 minutes
+                .signWith(getKey(), SignatureAlgorithm.HS256)
+                .compact();
+    }
+
+    /**
+     * Extract OAuth registration data from temporary token
+     * Returns null if token is invalid or expired
+     */
+    public Map<String, String> extractOAuthRegistrationData(String token) {
+        try {
+            Claims claims = extractAllClaims(token);
+
+            // Verify token type
+            if (!"oauth_registration".equals(claims.get("type"))) {
+                return null;
+            }
+
+            Map<String, String> data = new HashMap<>();
+            data.put("providerId", (String) claims.get("providerId"));
+            data.put("name", (String) claims.get("name"));
+            data.put("picture", (String) claims.get("picture"));
+            data.put("provider", (String) claims.get("provider"));
+            data.put("email", (String) claims.get("email"));
+            data.put("suggestedUsername", (String) claims.get("suggestedUsername"));
+
+            return data;
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    /**
      * Extract OAuth pending data from temporary token
      * Returns null if token is invalid or expired
      */
     public Map<String, String> extractOAuthPendingData(String token) {
         try {
             Claims claims = extractAllClaims(token);
-            
+
             // Verify token type
             if (!"oauth_pending".equals(claims.get("type"))) {
                 return null;
             }
-            
+
             Map<String, String> data = new HashMap<>();
             data.put("providerId", (String) claims.get("providerId"));
             data.put("name", (String) claims.get("name"));
             data.put("picture", (String) claims.get("picture"));
             data.put("provider", (String) claims.get("provider"));
-            
+
             return data;
         } catch (Exception e) {
             return null;

@@ -9,6 +9,7 @@ import lombok.NoArgsConstructor;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 @Entity
 //@Table(indexes = @Index(name = "idx_mail", columnList = "email"))
@@ -21,7 +22,7 @@ public class Users {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private int userId;
+    private Integer userId;
 
     @Column(nullable = false, length = 100)
     private String username;
@@ -35,6 +36,8 @@ public class Users {
 
     @Column(nullable = false, unique = true, length = 100)
     private String email;
+
+    private String secondaryEmail;
 
     @Column(nullable = false, columnDefinition = "boolean default false")
     private boolean emailVerified;
@@ -68,6 +71,7 @@ public class Users {
     protected void onCreate(){
         this.createdAt = Instant.now();
         this.updatedAt = Instant.now();
+        if(this.username != null) this.username = this.username.toLowerCase();
         if(this.role == null) this.role = "ROLE_USER";
         if(this.roleVersion == null) this.roleVersion = 0;
     }
@@ -75,19 +79,37 @@ public class Users {
     @PreUpdate
     protected void onUpdate(){
         this.updatedAt = Instant.now();
+        if(this.username != null) this.username = this.username.toLowerCase();
+    }
+
+    public void setUsername(String username){
+        this.username = username != null? username.toLowerCase() : null;
+    }
+
+    public void setImageProperties(Map<String, Object> imageProperties){
+        this.setImagePublicId((String) imageProperties.get("public_id"));
+        this.setImageUrl((String) imageProperties.get("secure_url"));
     }
 
     public UserDto toDto() {
+        List<String> providers = this.oAuthProviders.stream()
+                .map(OAuthProvider::getProvider)
+                .toList();
+
         return new UserDto(
                 this.userId,
-                this.username,
+                this.username != null ? this.username.toLowerCase() : null,
                 this.name,
                 this.email,
+                this.secondaryEmail,
                 this.emailVerified,
                 this.createdAt,
                 this.updatedAt,
                 this.imagePublicId,
-                this.imageUrl
+                this.imageUrl,
+                providers,
+                this.password != null && !this.password.isEmpty()
+
         );
     }
 

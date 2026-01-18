@@ -7,7 +7,6 @@ import org.springframework.stereotype.Service;
 @Service
 public class RoleVersionServiceImpl implements RoleVersionService {
 
-
     private final UserRepository userRepository;
 
     public RoleVersionServiceImpl(UserRepository userRepository) {
@@ -20,11 +19,17 @@ public class RoleVersionServiceImpl implements RoleVersionService {
             return false;
         }
 
-        Users user = userRepository.findByUsername(username);
+        Users user = userRepository.findByUsername(username)
+                .orElse(null);
         if (user == null) {
             return false;
         }
 
-        return user.getRoleVersion() == tokenRoleVersion.intValue();
+        Integer dbRoleVersion = user.getRoleVersion();
+        if (dbRoleVersion == null) {
+            return tokenRoleVersion == 0; // Default to 0 if null in DB
+        }
+
+        return dbRoleVersion.intValue() == tokenRoleVersion.intValue();
     }
 }

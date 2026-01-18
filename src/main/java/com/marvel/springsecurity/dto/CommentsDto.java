@@ -2,18 +2,20 @@ package com.marvel.springsecurity.dto;
 
 import com.marvel.springsecurity.model.Comment;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
+@Builder
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 public class CommentsDto {
-    private int id;
+    private Integer id;
     private String comment;
-    private int bookId;
+    private Integer bookId;
     private String username;
     private LocalDateTime createdAt;
     private String profilePic;
@@ -25,6 +27,5 @@ public class CommentsDto {
         this.username = newComment.getUser().getUsername();
         this.createdAt = newComment.getCreatedAt();
         this.profilePic = newComment.getUser().getImageUrl();
-        System.out.println(profilePic);
     }
 }

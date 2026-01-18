@@ -1,5 +1,7 @@
 package com.marvel.springsecurity.repo;
 
+import com.marvel.springsecurity.dto.projections.AuthorAndCountProjection;
+import com.marvel.springsecurity.dto.projections.CategoryAndCountProjection;
 import com.marvel.springsecurity.model.Book;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -7,6 +9,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+
+import java.util.List;
 
 @Repository
 public interface BookRepo extends JpaRepository<Book, Integer> {
@@ -41,5 +45,18 @@ public interface BookRepo extends JpaRepository<Book, Integer> {
     Page<Object[]> findBooksWithRatings(Pageable pageable);
 
 
-    
+
+   @Query("""
+            SELECT b.category AS category, COUNT(*) AS counts FROM Book b
+            GROUP BY b.category
+            ORDER BY counts
+          """)
+   List<CategoryAndCountProjection> getDistinctCategoriesAndCount();
+
+   @Query("""
+            SELECT b.author AS author, COUNT(*) AS counts FROM Book b
+            GROUP BY b.author
+            ORDER BY counts ASC
+          """)
+   List<AuthorAndCountProjection> getDistinctAuthorsAndCount();
 }

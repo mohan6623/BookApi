@@ -11,7 +11,6 @@ import lombok.NoArgsConstructor;
 @Builder
 public class JwtResponse {
     private String token;
-    // TODO: implement refresh token mechanism
     private String refreshToken;
     private UserDto user;
 }

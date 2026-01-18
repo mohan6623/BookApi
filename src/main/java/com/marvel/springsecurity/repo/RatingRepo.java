@@ -1,6 +1,6 @@
 package com.marvel.springsecurity.repo;
 
-import com.marvel.springsecurity.dto.AvgAndCountProjection;
+import com.marvel.springsecurity.dto.projections.AvgAndCountProjection;
 import com.marvel.springsecurity.model.Rating;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;

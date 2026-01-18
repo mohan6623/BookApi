@@ -25,37 +25,36 @@ public class ImageService {
         this.cloudinary = cloudinary;
     }
 
-    @SuppressWarnings({"rawtupes", "unchecked"})
+    @SuppressWarnings({ "rawtypes", "unchecked" })
     public Map<String, Object> uploadImage(MultipartFile image, String folder) throws IOException {
-        //Creating a temp file to hold data in disk rather than Memory
+        // Creating a temp file to hold data in disk rather than Memory
 
         File tempFile = null;
-        try{
-            //temp file will be look like "upload_408383443_image.png"
-            //                                    prefix_randomValue_imageName.png
-            tempFile = File.createTempFile("upload_","_"+ image.getOriginalFilename());
+        try {
+            // temp file will be look like "upload_408383443_image.png"
+            // prefix_randomValue_imageName.png
+            tempFile = File.createTempFile("upload_", "_" + image.getOriginalFilename());
             image.transferTo(tempFile);
 
             String fileHash = generateFileHash(tempFile);
 
             Map<String, Object> property = ObjectUtils.asMap(
-                "public_id", folder + "/" + fileHash,
+                    "public_id", folder + "/" + fileHash,
                     "overwrite", true,
-                    "resource_type", "image"
-            );
+                    "resource_type", "image");
 
             return cloudinary.uploader().upload(tempFile, property);
         } catch (NoSuchAlgorithmException e) {
             throw new IOException("Could not generate file hash", e);
-        } finally{
-            if(tempFile != null && tempFile.exists() && !tempFile.delete()){
-            logger.warn("Failed to delete temp file: {}", tempFile.getAbsolutePath());
+        } finally {
+            if (tempFile != null && tempFile.exists() && !tempFile.delete()) {
+                logger.warn("Failed to delete temp file: {}", tempFile.getAbsolutePath());
             }
         }
     }
 
     public void deleteImage(String publicId) throws IOException {
-        try{
+        try {
             cloudinary.uploader().destroy(publicId, ObjectUtils.emptyMap());
         } catch (IOException e) {
             logger.error("Failed to delete image with Public_id {}", publicId, e);
@@ -66,6 +65,7 @@ public class ImageService {
     /**
      * Generates an MD5 hash for a given file by reading it in chunks.
      * This is memory-efficient for large files.
+     * 
      * @param file The file to hash.
      * @return A hexadecimal string representation of the hash.
      */

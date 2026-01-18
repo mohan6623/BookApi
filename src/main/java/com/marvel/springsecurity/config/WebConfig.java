@@ -20,39 +20,41 @@ public class WebConfig {
     @Value("${app.frontend.url}")
     private String frontendUrl;
 
-
     @Bean
     public WebMvcConfigurer corsConfigurer(
-                        RateLimiterService rateLimiterService,
-                        JwtService jwtService,
-                        ObjectMapper objectMapper) {
+            RateLimiterService rateLimiterService,
+            JwtService jwtService,
+            ObjectMapper objectMapper) {
         return new WebMvcConfigurer() {
             @Override
             public void addCorsMappings(@NonNull CorsRegistry registry) {
                 registry.addMapping("/**")
-                    .allowedOrigins(frontendUrl, "https://bookforum.app", "https://www.bookforum.app")
-                    .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
-                    .allowedHeaders("*")
-                    .allowCredentials(true);
+                        .allowedOrigins(frontendUrl, "https://bookforum.app", "https://www.bookforum.app")
+                        .allowedMethods("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")
+                        .allowedHeaders("*")
+                        .allowCredentials(true);
             }
 
             @Override
-            public void addInterceptors(@NonNull InterceptorRegistry registry){
+            public void addInterceptors(@NonNull InterceptorRegistry registry) {
                 // Register rate limiting interceptor
                 registry.addInterceptor(
-                        new RateLimitInterceptor(rateLimiterService, jwtService, objectMapper)
-                ).addPathPatterns(
-                        "/api/register",
-                        "/api/register/**",
-                        "/api/login",
-                        "/api/validate/**",
-                        "/api/update/reset-password",
-                        "/api/oauth/callback",
-                        "/api/available/**"
+                        new RateLimitInterceptor(rateLimiterService, jwtService, objectMapper)).addPathPatterns(
+                                "/api/register",
+                                "/api/register/**",
+                                "/api/login",
+                                "/api/validate/**",
+                                "/api/update/reset-password",
+                                "/api/oauth/callback",
+                                "/api/available/**",
+                                "/api/forgot-password", // Password reset request - prevents email spam
+                                "/api/resend-verification", // Resend verification - prevents email spam
+                                "/api/oauth/submit-email", // OAuth email submission - prevents abuse
+                                "/api/user", // User updates
+                                "/api/user/**" // All user sub-endpoints (profile pic, name, password)
                 ).excludePathPatterns(
                         "/api/oauth/health",
-                        "/actuator/**"
-                );
+                        "/actuator/**");
             }
         };
     }

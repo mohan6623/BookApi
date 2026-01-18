@@ -2,9 +2,12 @@ package com.marvel.springsecurity.service.book;
 
 
 import com.cloudinary.Cloudinary;
-import com.marvel.springsecurity.dto.AvgAndCountProjection;
 import com.marvel.springsecurity.dto.BookDto;
 import com.marvel.springsecurity.dto.CommentsDto;
+import com.marvel.springsecurity.dto.projections.AuthorAndCountProjection;
+import com.marvel.springsecurity.dto.projections.AvgAndCountProjection;
+import com.marvel.springsecurity.dto.projections.CategoryAndCountProjection;
+import com.marvel.springsecurity.exception.ResourceNotFoundException;
 import com.marvel.springsecurity.model.Book;
 import com.marvel.springsecurity.model.Comment;
 import com.marvel.springsecurity.model.Rating;
@@ -12,12 +15,10 @@ import com.marvel.springsecurity.model.Users;
 import com.marvel.springsecurity.repo.BookRepo;
 import com.marvel.springsecurity.repo.CommentRepo;
 import com.marvel.springsecurity.repo.RatingRepo;
-import com.marvel.springsecurity.repo.UserRepository;
 import com.marvel.springsecurity.service.security.UserPrincipal;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -36,14 +37,12 @@ public class BookService {
     private final BookRepo bookRepo;
     private final RatingRepo ratingRepo;
     private final CommentRepo commentRepo;
-    private final UserRepository userRepo;
     private final ImageService imageService;
 
-    public BookService(BookRepo bookRepo, RatingRepo ratingRepo, CommentRepo commentRepo, UserRepository userRepo, Cloudinary cloudinary, ImageService imageService) {
+    public BookService(BookRepo bookRepo, RatingRepo ratingRepo, CommentRepo commentRepo, Cloudinary cloudinary, ImageService imageService) {
         this.bookRepo = bookRepo;
         this.ratingRepo = ratingRepo;
         this.commentRepo = commentRepo;
-        this.userRepo = userRepo;
         this.imageService = imageService;
     }
 
@@ -73,8 +72,8 @@ public class BookService {
         return ratingRepo.AverageAndCountByBookId(bookId);
     }
 
-    public boolean updateBook(int id, Book book, MultipartFile image) throws IOException {
-        var existing = bookRepo.findById(id);
+    public boolean updateBook(int bookId, Book book, MultipartFile image) throws IOException {
+        var existing = bookRepo.findById(bookId);
         if(existing.isEmpty()) {
             return false;
         }
@@ -128,14 +127,11 @@ public class BookService {
         return data.map(BookDto::new);
     }
 
-    public ResponseEntity<Void> addRating(int bookId, Rating rating) {
-        int userId = getUserId();
-        if (userId == -1) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User not authenticated");
-        }
+    public void addRating(int bookId, Rating rating, int userId) {
+
         // Check if a book exists
         if (!bookRepo.existsById(bookId)) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Book not found");
+            throw new ResourceNotFoundException("Book Not Found with id : "+ bookId);
         }
         // Validate rating value
         if (rating.getRating() < 1 || rating.getRating() > 5) {
@@ -145,7 +141,7 @@ public class BookService {
         if(oldRating != null){
             oldRating.setRating(rating.getRating());
             ratingRepo.save(oldRating);
-            return ResponseEntity.ok().build();
+            return;
         }
             Book book = new Book();
             book.setBookId(bookId);
@@ -155,11 +151,10 @@ public class BookService {
             rating.setBook(book);
 
         ratingRepo.save(rating);
-        return ResponseEntity.ok().build();
     }
 
-    public Map<Integer, Integer> getRatings(int id) {
-        List<Rating> ratings = ratingRepo.findAllByBook_BookId(id);
+    public Map<Integer, Integer> getRatings(int bookId) {
+        List<Rating> ratings = ratingRepo.findAllByBook_BookId(bookId);
         if (ratings.isEmpty()) return new HashMap<>();
         Map<Integer, Integer> ratingCount = new HashMap<>(Map.of(
                 1, 0,
@@ -184,14 +179,10 @@ public class BookService {
     }
 
 
-    public Comment addComment(int id, CommentsDto comment) {
-        int userId = getUserId();
-        if (userId == -1) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User not authenticated");
-        }
+    public CommentsDto addComment(int bookId, Comment comment, int userId) {
 
         // Check if book exists
-        if (!bookRepo.existsById(id)) {
+        if (!bookRepo.existsById(bookId)) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Book not found");
         }
 
@@ -204,7 +195,8 @@ public class BookService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Comment too long (max 1000 characters)");
         }
 
-        return commentRepo.save(new Comment(comment, userId));
+        comment.getUser().setUserId(userId);
+        return commentRepo.save(comment).toDto();
     }
 
     public Page<CommentsDto> getComments(int id, int page, int size) {
@@ -223,11 +215,7 @@ public class BookService {
 
     }
 
-    public Comment updateComment(CommentsDto comment) {
-        int userId = getUserId();
-        if (userId == -1) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User not authenticated");
-        }
+    public Comment updateComment(CommentsDto comment, int userId) {
 
         // Fetch existing comment and verify ownership
         Comment existingComment = commentRepo.findById(comment.getId())
@@ -251,14 +239,14 @@ public class BookService {
         return commentRepo.save(existingComment);
     }
 
-    public void deleteComment(int id) {
+    public void deleteComment(int commentId) {
         int userId = getUserId();
         if (userId == -1) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User not authenticated");
         }
 
         // Fetch comment and verify ownership
-        Comment comment = commentRepo.findById(id)
+        Comment comment = commentRepo.findById(commentId)
             .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Comment not found"));
 
         // Allow deletion if user is the owner or has ADMIN role
@@ -270,13 +258,13 @@ public class BookService {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You don't have permission to delete this comment");
         }
 
-        commentRepo.deleteById(id);
+        commentRepo.deleteById(commentId);
     }
 
 
     private String getUsername(){
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        return (auth != null)? auth.getName() : null;
+        return (auth != null)? auth.getName().toLowerCase() : null;
     }
     public int getUserId(){
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
@@ -286,4 +274,11 @@ public class BookService {
         return -1;
     }
 
+    public List<CategoryAndCountProjection> getDistinctCategoriesAndCount() {
+        return bookRepo.getDistinctCategoriesAndCount();
+    }
+
+    public List<AuthorAndCountProjection> getDistinctAuthorsAndCount() {
+        return bookRepo.getDistinctAuthorsAndCount();
+    }
 }

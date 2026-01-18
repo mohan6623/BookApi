@@ -78,6 +78,8 @@ build/
 # Local environment files and secrets
 .env
 .env.*.local
+.env.dev
+.env.example
 *.jks
 *.keystore
 *.p12
@@ -102,3 +104,10 @@ HELP.md
 !**/src/test/**/build/
 !**/src/main/**/target/
 !**/src/test/**/target/
+
+#test_output
+test_output.txt
+test_output2.txt
+compile_errors.txt
+failures.txt
+full_test_output.txt
