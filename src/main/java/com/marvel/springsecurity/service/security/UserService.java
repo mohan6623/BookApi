@@ -60,6 +60,7 @@ public class UserService {
             log.warn("Email Not verified: {}", dbUser.getEmail());
             return null;
         }
+        dbUser.setVerificationToken(null);
         String role = dbUser.getRole();
         if (role == null) {
             role = "ROLE_USER"; // Default fallback
@@ -129,11 +130,20 @@ public class UserService {
 
         Users existingUser = userPrincipal.getUser();
 
-        if (resetDto.getOldPassword() == null || resetDto.getOldPassword().isBlank()) {
-            throw new UnauthorizedException("Enter a valid password");
-        }
-        if (!encoder.matches(resetDto.getOldPassword(), existingUser.getPassword())) {
-            throw new UnauthorizedException("Enter correct password");
+        // Check if user has an existing password (OAuth users might have empty password)
+        boolean hasPassword = existingUser.getPassword() != null && !existingUser.getPassword().isEmpty();
+
+        if (hasPassword) {
+            // Regular password update - requires old password verification
+            if (resetDto.getOldPassword() == null || resetDto.getOldPassword().isBlank()) {
+                throw new UnauthorizedException("Enter a valid password");
+            }
+            if (!encoder.matches(resetDto.getOldPassword(), existingUser.getPassword())) {
+                throw new UnauthorizedException("Enter correct password");
+            }
+        } else {
+            // OAuth account setting first password - no old password required
+            log.info("OAuth user setting first password: {}", existingUser.getUsername());
         }
 
         existingUser.setPassword(encoder.encode(resetDto.getPassword()));

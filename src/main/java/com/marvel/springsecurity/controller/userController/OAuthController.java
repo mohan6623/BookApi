@@ -288,7 +288,7 @@ public class OAuthController {
         }
 
         // Check if username is already taken
-        if (userRepository.findByUsername(username) != null) {
+        if (userRepository.existsByUsername(username)) {
             return ResponseEntity.badRequest().body(Map.of(
                     "error", "USERNAME_TAKEN",
                     "message", "This username is already taken"));
@@ -381,7 +381,7 @@ public class OAuthController {
         String candidate = base;
         int suffix = 1;
 
-        while (userRepository.findByUsername(candidate) != null) {
+        while (userRepository.existsByUsername(candidate)) {
             candidate = base + suffix++;
         }
         return candidate;

@@ -67,6 +67,14 @@ public class SpringOAuth2UserService extends DefaultOAuth2UserService {
         if (existingProvider.isPresent()) {
             // User logging in with existing OAuth account
             user = existingProvider.get().getUser();
+
+            // SECURITY: Block login if email is not verified
+            if (!user.isEmailVerified()) {
+                throw new OAuth2AuthenticationException(new OAuth2Error("email_not_verified",
+                        "Please verify your email address before logging in. Check your inbox for the verification link.",
+                        null));
+            }
+
             // Only set profile picture if the user doesn't have one yet (legacy support)
             if ((user.getImageUrl() == null || user.getImageUrl().isEmpty()) && picture != null) {
                 user.setImageUrl(picture);
